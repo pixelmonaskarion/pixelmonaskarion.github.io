@@ -1,0 +1,61 @@
+<html>
+
+<head>
+  <title>Untitled Project</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preload" href="applab/fontawesome-webfont.woff2" as="font">
+  <script src="https://code.jquery.com/jquery-1.12.1.min.js"></script>
+  <script>
+    function setExportConfig(config) { window.EXPORT_OPTIONS = config; }
+  </script>
+  <script
+    src="https://studio.code.org/projects/applab/eCGtcIz7absLtuuK-_LfhgOhUUKdvcgu9r4mvBcZEHI/export_config?script_call=setExportConfig"></script>
+  <script src="applab/applab-api.js"></script>
+  <script src="https://www.google.com/jsapi"></script>
+  <link rel="stylesheet" href="applab/applab.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div id="divApplab" class="appModern running" tabindex="1" style="width: 320px; height: 450px; display: block;">
+    <div class="screen" tabindex="1" data-theme="default" id="login"
+      style="display: block; height: 450px; width: 320px; left: 0px; top: 0px; position: absolute; z-index: 0; background-color: rgb(255, 255, 255);">
+      <input id="login_username"
+        style="margin: 0px; width: 200px; height: 30px; border-style: solid; color: rgb(77, 87, 95); background-color: rgb(242, 242, 242); border-color: rgb(77, 87, 95); border-radius: 4px; border-width: 1px; font-family: Arial, Helvetica, sans-serif; font-size: 13px; padding: 5px 15px; position: absolute; left: 25px; top: 15px;"
+        placeholder="username"><input id="login_password"
+        style="margin: 0px; width: 200px; height: 30px; border-style: solid; color: rgb(77, 87, 95); background-color: rgb(242, 242, 242); border-color: rgb(77, 87, 95); border-radius: 4px; border-width: 1px; font-family: Arial, Helvetica, sans-serif; font-size: 13px; padding: 5px 15px; position: absolute; left: 25px; top: 55px;"
+        placeholder="password"><button id="login_go"
+        style="padding: 0px; margin: 0px; border-style: solid; height: 40px; width: 100px; background-color: rgb(0, 162, 255); color: rgb(255, 255, 255); border-color: rgb(77, 87, 95); border-radius: 4px; border-width: 1px; font-family: &quot;Arial Black&quot;, Gadget, sans-serif; font-size: 15px; position: absolute; left: 25px; top: 100px;">continue</button><button
+        id="login_create"
+        style="padding: 0px; margin: 0px; border-style: solid; height: 40px; width: 100px; background-color: rgb(0, 162, 255); color: rgb(255, 255, 255); border-color: rgb(77, 87, 95); border-radius: 4px; border-width: 1px; font-family: &quot;Arial Black&quot;, Gadget, sans-serif; font-size: 15px; position: absolute; left: 135px; top: 100px;">create
+        account</button></div>
+    <div class="screen" tabindex="1" data-theme="default" id="create_account"
+      style="display: none; height: 450px; width: 320px; left: 0px; top: 0px; position: absolute; z-index: 0; background-color: rgb(255, 255, 255);">
+      <input id="CA_username"
+        style="margin: 0px; width: 200px; height: 30px; border-style: solid; color: rgb(77, 87, 95); background-color: rgb(242, 242, 242); border-color: rgb(77, 87, 95); border-radius: 4px; border-width: 1px; font-family: Arial, Helvetica, sans-serif; font-size: 13px; padding: 5px 15px; position: absolute; left: 15px; top: 10px;"
+        placeholder="username"><input id="CA_password"
+        style="margin: 0px; width: 200px; height: 30px; border-style: solid; color: rgb(77, 87, 95); background-color: rgb(242, 242, 242); border-color: rgb(77, 87, 95); border-radius: 4px; border-width: 1px; font-family: Arial, Helvetica, sans-serif; font-size: 13px; padding: 5px 15px; position: absolute; left: 15px; top: 55px;"
+        placeholder="password"><button id="CA_create"
+        style="padding: 0px; margin: 0px; border-style: solid; height: 40px; width: 100px; background-color: rgb(0, 162, 255); color: rgb(255, 255, 255); border-color: rgb(77, 87, 95); border-radius: 4px; border-width: 1px; font-family: &quot;Arial Black&quot;, Gadget, sans-serif; font-size: 15px; position: absolute; left: 60px; top: 100px;">create</button>
+    </div>
+    <div class="screen" tabindex="1" data-theme="default" id="projects_pg"
+      style="display: none; height: 450px; width: 320px; left: 0px; top: 0px; position: absolute; z-index: 0; background-color: rgb(255, 255, 255);">
+      <button id="createProject"
+        style="padding: 0px; margin: 0px; border-style: solid; height: 40px; width: 100px; background-color: rgb(0, 162, 255); color: rgb(255, 255, 255); border-color: rgb(77, 87, 95); border-radius: 4px; border-width: 1px; font-family: &quot;Arial Black&quot;, Gadget, sans-serif; font-size: 15px; position: absolute; left: 25px; top: 100px;">new project</button>
+    </div>
+    <div class="screen" tabindex="1" data-theme="default" id="create_project_pg"
+      style="display: none; height: 450px; width: 320px; left: 0px; top: 0px; position: absolute; z-index: 0; background-color: rgb(255, 255, 255);">
+      <button id="create_go"
+        style="padding: 0px; margin: 0px; border-style: solid; height: 40px; width: 100px; background-color: rgb(0, 162, 255); color: rgb(255, 255, 255); border-color: rgb(77, 87, 95); border-radius: 4px; border-width: 1px; font-family: &quot;Arial Black&quot;, Gadget, sans-serif; font-size: 15px; position: absolute; left: 25px; top: 100px;">create project</button>
+      <input id="create_project_name"
+        style="margin: 0px; width: 200px; height: 30px; border-style: solid; color: rgb(77, 87, 95); background-color: rgb(242, 242, 242); border-color: rgb(77, 87, 95); border-radius: 4px; border-width: 1px; font-family: Arial, Helvetica, sans-serif; font-size: 13px; padding: 5px 15px; position: absolute; left: 15px; top: 10px;"
+        placeholder="project name">
+    </div>
+    <div class="screen" tabindex="1" data-theme="default" id="project"
+      style="display: none; height: 450px; width: 320px; left: 0px; top: 0px; position: absolute; z-index: 0; background-color: rgb(255, 255, 255);">
+    </div>
+  </div>
+</body>
+
+</html>
