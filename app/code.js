@@ -60,16 +60,18 @@ function projectPage(){
   setScreen("projects_pg");
   readRecords("projects", {}, function(records){
     for (var i = 0; i<records.length; i++){
-      var projectid = "project"+i;
-      projects.push(projectid);
-      button(projectid, records[i].name);
-      onEvent(projectid, "click", function(){
-        if (state == "projects"){
-          readRecords("projects", {"name":getText(projectid)}, function(records){
-          openProject(records[0]);
-          });
-        }
-      });
+      if (records[i].users == user) {
+        var projectid = "project"+i;
+        projects.push(projectid);
+        button(projectid, records[i].name);
+        onEvent(projectid, "click", function(){
+          if (state == "projects"){
+            readRecords("projects", {"name":getText(projectid)}, function(records){
+            openProject(records[0]);
+            });
+          }
+        });
+      }
     }
   });
 }
