@@ -4,12 +4,7 @@ var projects = [];
 var TheProject;
 var activeFile = 0;
 function createElements(){
-  textInput("projectName", "name");
-  hideElement("projectName");
-  button("save", "save");
-  hideElement("save");
-  button("newFile", "new file");
-  hideElement("newFile");
+  setPosition("ide_save", 200,100);
 }
 function login(){
   state = "login";
@@ -100,20 +95,20 @@ function openProject(project) {
     }
   }
 }
-onEvent("newFile","click", function(){
-  if (state == "ide"){
-    var files = JSON.parse(TheProject.files);
-    files.push({"name":"test", "text":""});
-    TheProject.files = JSON.stringify(files);
+onEvent("ide_new_file","click", function(){
+    setScreen("new_file");
     
-    updateRecord("projects", TheProject);
-  }
 });
-onEvent("save","click", function(){
-  if (state == "ide"){
-    var files = JSON.parse(TheProject.files);
-    files.push({"name":"test", "text":""});
-    TheProject.files = JSON.stringify(files);
-    updateRecord("projects", TheProject);
-  }
+onEvent("new_file_go", "click", function(){
+  var files = JSON.parse(TheProject.files);
+  files.push({"name":getText("new_file_name"), "text":"//I wish this was java"});
+  TheProject.files = JSON.stringify(files);
+  updateRecord("projects", TheProject);
+  openProject(TheProject);
+});
+onEvent("ide_save","click", function(){
+  var files = JSON.parse(TheProject.files);
+  files[activeFile] = {"name":files[activeFile].name, "text":getText("ide_text")};
+  TheProject.files = JSON.stringify(files);
+  updateRecord("projects", TheProject);
 });
