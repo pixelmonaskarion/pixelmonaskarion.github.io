@@ -89,15 +89,12 @@ function openProject(project) {
     hideElement(projects[i]);
   }
   TheProject = project;
-  hideElement("createProject");
-  showElement("save");
-  showElement("newFile");
-  showElement("code");
+  setScreen("ide");
   var files = JSON.parse(project.files);
   if (files.length > 0){
     console.log(files);
     if (files != undefined){
-      setText("code",files[activeFile].text);
+      setText("ide_text",files[activeFile].text);
     } else {
       
     }
