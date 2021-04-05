@@ -79,7 +79,6 @@ onEvent("createProject", "click", function(){
 
 function openProject(project) {
   state = "ide";
-  activeFile = 0;
   for (var i = 0; i<projects.length; i++){
     hideElement(projects[i]);
   }
@@ -87,12 +86,32 @@ function openProject(project) {
   setScreen("ide");
   var files = JSON.parse(project.files);
   if (files.length > 0){
-    console.log(files);
+    //console.log(files);
     if (files != undefined){
       setText("ide_text",files[activeFile].text);
     } else {
       
     }
+    options = 'dropdown("ide_dropdown","change file",';
+    for (var i = 0; i<files.length; i++) {
+      options = options + '"'+files[i].name+'"';
+      if (i+1 != files.length) {
+        options = options + ",";
+      } else {
+        options = options + ");";
+      }
+    }
+    console.log(options);
+    eval(options);
+    setPosition("ide_dropdown", 100,30);
+    onEvent("ide_dropdown", "change", function(){
+      if (getProperty("ide_dropdown", "index") != 0) {
+        text = getProperty("ide_dropdown", "options")[getProperty("ide_dropdown", "index")];
+      activeFile = getFileIndex(JSON.parse(TheProject.files), text); 
+      deleteElement("ide_dropdown");
+      openProject(TheProject);
+      }
+    });
   }
 }
 onEvent("ide_new_file","click", function(){
@@ -112,3 +131,16 @@ onEvent("ide_save","click", function(){
   TheProject.files = JSON.stringify(files);
   updateRecord("projects", TheProject);
 });
+function getFileIndex(files, name) {
+  for (i = 0; i < files.length; i++) {
+    if (files[i].name == name) {
+      console.log(files[i].name);
+      return i;
+    } else {
+      //console.log(files[i].name);
+    }
+  }
+  //console.log(name);
+  return null;
+}
+
