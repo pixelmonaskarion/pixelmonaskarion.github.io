@@ -59,6 +59,7 @@ function projectPage(){
         var projectid = "project"+i;
         projects.push(projectid);
         button(projectid, records[i].name);
+        setProperty(projectid, "background-color", rgb(0, 162, 255));
         onEvent(projectid, "click", function(){
           if (state == "projects"){
             readRecords("projects", {"name":getText(projectid)}, function(records){
