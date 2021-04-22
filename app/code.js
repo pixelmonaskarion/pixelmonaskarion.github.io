@@ -103,6 +103,7 @@ function openProject(project) {
       }
     }
     console.log(options);
+    deleteElement("ide_dropdown");
     eval(options);
     setPosition("ide_dropdown", 100,30);
     onEvent("ide_dropdown", "change", function(){
