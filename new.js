@@ -58,7 +58,7 @@ for (var i = 0; i < size/10; i++) {
 }
 
 for (var x = 0; x < size; x++) {
-	liquids.push({"x":x, "y":0, "type":0, "dir":1, "evap":0});
+	liquids.push({"x":x, "y":0, "type":0, "dir":1, "evap":0, "amount":1});
 }
 
 var player = {"x": 0, "y": 0, "sy":0, inAir:10};
@@ -175,7 +175,7 @@ function drawLiquid(liquid) {
 	if (liquid.x*zoom-scrollX+cvWidth/2 > -size && liquid.x*zoom-scrollX+cvWidth/2 < cvWidth) {
 		if (liquid.y*zoom-scrollY+cvHeight/2 > -size && liquid.y*zoom-scrollY+cvHeight/2 < cvHeight) {
 			ctx.fillStyle = colorToString(colorMultiply({"r":0, "g":0, "b":255}, Math.min(getBlock(liquid.x, liquid.y).light, 1)));
-			ctx.fillRect(liquid.x*zoom-scrollX+cvWidth/2, liquid.y*zoom-scrollY+cvHeight/2, zoom+1, zoom+1);
+			ctx.fillRect(liquid.x*zoom-scrollX+cvWidth/2, liquid.y*zoom-scrollY+cvHeight/2+zoom-((zoom+1)*liquid.amount), zoom+1, (zoom+1)*liquid.amount);
 		}
 	}
 	if (getBlock(liquid.x, liquid.y+1).type == 1 && getLiquid(liquid.x, liquid.y+1) == null) {
@@ -185,6 +185,8 @@ function drawLiquid(liquid) {
 		if (getBlock(liquid.x+liquid.dir, liquid.y).type == 1 && getLiquid(liquid.x+liquid.dir, liquid.y) == null) {
 			liquid.x += liquid.dir;
 			liquid.evap++;
+			//liquids.push({"x":x*-1, "y":y, "type":0, "dir":1, "evap":0, "amount":1});
+			//liquids[getLiquidIndex(liquid.x, liquid.y)].amount /= 2;
 		} else {
 			liquid.dir *= -1;
 		}
@@ -241,7 +243,7 @@ function lightUpdate(tileIndex) {
 	if (getBlock(tiles[tileIndex].x-1, tiles[tileIndex].y).type == 0) {
 		l = 0;
 	}
-	tiles[tileIndex].light = (u+d+r+l)/4.5;
+	tiles[tileIndex].light = (u+d+r+l)/4;
 	tiles[tileIndex].light = Math.max(tiles[tileIndex].light, 0.05);
 }
 
