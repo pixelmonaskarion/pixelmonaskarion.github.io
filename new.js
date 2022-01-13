@@ -66,6 +66,27 @@ var speed = 0.5;
 var scrollX = 0;
 var scrollY = 0;
 
+document.addEventListener('keydown', keyWentDown);
+document.addEventListener('keyup', keyWentUp);
+var mouseDown = [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    mouseDownCount = 0;
+document.body.onmousedown = function(evt) { 
+  ++mouseDown[evt.button];
+  ++mouseDownCount;
+}
+document.body.onmouseup = function(evt) {
+  --mouseDown[evt.button];
+  --mouseDownCount;
+}
+var mx = 0;
+var my = 0;
+document.onmousemove = handleMouseMove;
+function handleMouseMove(evt) {
+	mx = evt.clientX-8;//canvas position on the document
+	my = evt.clientY-8;
+}
+
+
 function animate() {
 // call again next time we can draw
   requestAnimationFrame(animate);
@@ -103,6 +124,26 @@ function animate() {
   //getBlock(Math.floor(player.x/zoom), Math.floor(player.y/zoom)).color = "rgb(255,0,0)";
   ctx.fillStyle = "red";
   ctx.fillRect(player.x-scrollX+cvWidth/2, player.y-scrollY+cvHeight/2, zoom, zoom);
+  //getBlock(Math.floor(player.x/zoom), Math.floor(player.y/zoom)).light = 100;
+  if (mouseDown[0] == 1 || keysDown.includes("x")) {
+		var mbx = Math.floor((mx+scrollX-cvWidth/2)/zoom);
+		var mby = Math.floor((my+scrollY-cvHeight/2)/zoom);
+		getBlock(mbx, mby).type = 1;
+		getBlock(mbx, mby).color = {"r":255, "g":255, "b":255};
+		//ctx.fillText("("+mbx+","+mby+")", mx, my);
+  }
+  if (mouseDown[1] == 1 || keysDown.includes("c")) {
+		var mbx = Math.floor((mx+scrollX-cvWidth/2)/zoom);
+		var mby = Math.floor((my+scrollY-cvHeight/2)/zoom);
+		getBlock(mbx, mby).type = 0;
+		getBlock(mbx, mby).color = {"r":0, "g":0, "b":0};
+  }
+  if (keysDown.includes("l")) {
+		var mbx = Math.floor((mx+scrollX-cvWidth/2)/zoom);
+		var mby = Math.floor((my+scrollY-cvHeight/2)/zoom);
+		getBlock(mbx, mby).type = 1;
+		getBlock(mbx, mby).color = {"r":255, "g":255, "b":0};
+  }
   scroll();
   //ctx.fillRect(0,0,100,100);
   drawOutline();
@@ -117,7 +158,7 @@ function drawTile(tile) {
 	if (tile.x*zoom-scrollX+cvWidth/2 > -size && tile.x*zoom-scrollX+cvWidth/2 < cvWidth) {
 		if (tile.y*zoom-scrollY+cvHeight/2 > -size && tile.y*zoom-scrollY+cvHeight/2 < cvHeight) {
 			lightUpdate(tile.x * size + tile.y);
-			ctx.fillStyle = colorToString(colorMultiply(tile.color, tile.light));
+			ctx.fillStyle = colorToString(colorMultiply(tile.color, Math.min(tile.light, 1)));
 			ctx.fillRect(tile.x*zoom-scrollX+cvWidth/2, tile.y*zoom-scrollY+cvHeight/2, zoom+1, zoom+1);
 			//ctx.fillStyle = "red";
 			//ctx.fillText((y-getTopBlock(tile.x).y)/1000, tile.x*zoom-scrollX+cvWidth/2, tile.y*zoom-scrollY+cvHeight/2);
@@ -133,21 +174,22 @@ function drawTile(tile) {
 function drawLiquid(liquid) {
 	if (liquid.x*zoom-scrollX+cvWidth/2 > -size && liquid.x*zoom-scrollX+cvWidth/2 < cvWidth) {
 		if (liquid.y*zoom-scrollY+cvHeight/2 > -size && liquid.y*zoom-scrollY+cvHeight/2 < cvHeight) {
-			ctx.fillStyle = colorToString(colorMultiply({"r":0, "g":0, "b":255}, getBlock(liquid.x, liquid.y).light));
+			ctx.fillStyle = colorToString(colorMultiply({"r":0, "g":0, "b":255}, Math.min(getBlock(liquid.x, liquid.y).light, 1)));
 			ctx.fillRect(liquid.x*zoom-scrollX+cvWidth/2, liquid.y*zoom-scrollY+cvHeight/2, zoom+1, zoom+1);
 		}
 	}
 	if (getBlock(liquid.x, liquid.y+1).type == 1 && getLiquid(liquid.x, liquid.y+1) == null) {
 		liquid.y++;
+		liquid.evap++;
 	} else {
 		if (getBlock(liquid.x+liquid.dir, liquid.y).type == 1 && getLiquid(liquid.x+liquid.dir, liquid.y) == null) {
 			liquid.x += liquid.dir;
+			liquid.evap++;
 		} else {
 			liquid.dir *= -1;
-			liquid.evap++;
 		}
 	}
-	if (liquid.evap > 10) {
+	if (liquid.evap > 100) {
 		var li = getLiquidIndex(liquid.x, liquid.y);
 		liquids.splice(li, 1);
 		return -1;
@@ -174,16 +216,31 @@ function getLiquidIndex(x, y) {
 }
 
 function lightUpdate(tileIndex) {
-	tiles[tileIndex].light = 1
-	return;
+	var color = tiles[tileIndex].color;
+	if (color.r == 255 && color.g == 255 && color.b == 0) {
+		tiles[tileIndex].light = 1000;
+		return;
+	}
 	if (tiles[tileIndex].y <= getTopBlock(tiles[tileIndex].x).y) {
 		tiles[tileIndex].light = 1;
 		return;
 	}
 	var u = getBlock(tiles[tileIndex].x, tiles[tileIndex].y-1).light;
+	if (getBlock(tiles[tileIndex].x, tiles[tileIndex].y-1).type == 0) {
+		u = 0;
+	}
 	var d = getBlock(tiles[tileIndex].x, tiles[tileIndex].y+1).light;
+	if (getBlock(tiles[tileIndex].x, tiles[tileIndex].y+1).type == 0) {
+		d = 0;
+	}
 	var r = getBlock(tiles[tileIndex].x+1, tiles[tileIndex].y).light;
+	if (getBlock(tiles[tileIndex].x+1, tiles[tileIndex].y).type == 0) {
+		r = 0;
+	}
 	var l = getBlock(tiles[tileIndex].x-1, tiles[tileIndex].y).light;
+	if (getBlock(tiles[tileIndex].x-1, tiles[tileIndex].y).type == 0) {
+		l = 0;
+	}
 	tiles[tileIndex].light = (u+d+r+l)/4.5;
 	tiles[tileIndex].light = Math.max(tiles[tileIndex].light, 0.05);
 }
@@ -215,8 +272,7 @@ function drawOutline() {
 
 animate();
 
-document.addEventListener('keydown', keyWentDown);
-document.addEventListener('keyup', keyWentUp);
+
 
 function keyWentDown(e) {
   if (!keysDown.includes(e.key.toLowerCase())) {
