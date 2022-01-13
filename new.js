@@ -149,7 +149,7 @@ function drawLiquid(liquid) {
 	}
 	if (liquid.evap > 10) {
 		var li = getLiquidIndex(liquid.x, liquid.y);
-		liquids.remove(li);
+		liquids.splice(li, 1);
 		return -1;
 	}
 	return 0;
