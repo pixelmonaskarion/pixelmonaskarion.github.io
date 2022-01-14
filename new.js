@@ -91,11 +91,10 @@ function animate() {
 // call again next time we can draw
   requestAnimationFrame(animate);
   ctx.clearRect(0, 0, cvWidth, cvHeight);
-  var ctx = (a canvas context);
-  ctx.canvas.width  = window.innerWidth;
-  ctx.canvas.height = window.innerHeight;
-  cvWidth = window.innerWidth;
-  cvHeight = window.innerHeight;
+  ctx.canvas.width  = window.innerWidth-16;
+  ctx.canvas.height = window.innerHeight-16;
+  cvWidth = window.innerWidth-16;
+  cvHeight = window.innerHeight-16;
   
   if (keysDown.includes("w")) {
     if (player.inAir < 6) {
