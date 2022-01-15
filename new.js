@@ -117,8 +117,16 @@ function animate() {
     moveX(speed*zoom);
   }
 
-  for (var i = 0; i < tiles.length; i++) {
-    drawTile(tiles[i]);
+  //for (var i = 0; i < tiles.length; i++) {
+  //  drawTile(tiles[i]);
+  //}
+  for (var x = Math.floor((scrollX-cvWidth/2)/zoom); x < Math.floor((scrollX+cvWidth/2)/zoom); x++) {
+	for (var y = Math.floor((scrollY-cvHeight/2)/zoom); y < Math.floor((scrollY+cvHeight/2)/zoom); y++) {
+		var index = y + size * x;
+		if (index > -1 && index < size*size) {
+			drawTile(tiles[index]);
+		}
+	}		
   }
   var i = 0;
   while (i < liquids.length) {
@@ -176,12 +184,12 @@ function drawTile(tile) {
 }
 
 function drawLiquid(liquid) {
-	if (liquid.x*zoom-scrollX+cvWidth/2 > -size && liquid.x*zoom-scrollX+cvWidth/2 < cvWidth) {
-		if (liquid.y*zoom-scrollY+cvHeight/2 > -size && liquid.y*zoom-scrollY+cvHeight/2 < cvHeight) {
+	//if (liquid.x*zoom-scrollX+cvWidth/2 > -size && liquid.x*zoom-scrollX+cvWidth/2 < cvWidth) {
+	//	if (liquid.y*zoom-scrollY+cvHeight/2 > -size && liquid.y*zoom-scrollY+cvHeight/2 < cvHeight) {
 			ctx.fillStyle = colorToString(colorMultiply({"r":0, "g":0, "b":255}, Math.min(getBlock(liquid.x, liquid.y).light, 1)));
 			ctx.fillRect(liquid.x*zoom-scrollX+cvWidth/2, liquid.y*zoom-scrollY+cvHeight/2+zoom-((zoom+1)*liquid.amount), zoom+1, (zoom+1)*liquid.amount);
-		}
-	}
+	//	}
+	//}
 	if (getBlock(liquid.x, liquid.y+1).type == 1 && getLiquid(liquid.x, liquid.y+1) == null) {
 		liquid.y++;
 		liquid.evap++;
@@ -224,7 +232,7 @@ function getLiquidIndex(x, y) {
 function lightUpdate(tileIndex) {
 	var color = tiles[tileIndex].color;
 	if (color.r == 255 && color.g == 255 && color.b == 0) {
-		tiles[tileIndex].light = 1000;
+		tiles[tileIndex].light = 1;
 		return;
 	}
 	if (tiles[tileIndex].y <= getTopBlock(tiles[tileIndex].x).y) {
@@ -248,7 +256,7 @@ function lightUpdate(tileIndex) {
 		l = 0;
 	}
 	tiles[tileIndex].light = (u+d+r+l)/4;
-	tiles[tileIndex].light = Math.max(tiles[tileIndex].light, 0.05);
+	tiles[tileIndex].light = Math.max(Math.min(tiles[tileIndex].light, 1), 0.05);
 }
 
 function colorMultiply(color, mult) {
