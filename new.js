@@ -9,6 +9,8 @@ var liquids = [];
 var size = 1000;
 var zoom = 10;
 var h = document.createElement("H1");
+var testImg = document.getElementById("img");
+//log(typeof(img));
 noise.seed(Math.random());
 for (var x = 0; x < size; x++) {
 	var height = Math.floor((noise.perlin2(x/10, 0)+10)*5);
@@ -16,6 +18,7 @@ for (var x = 0; x < size; x++) {
 		var cave = Math.abs(noise.perlin2(x/50,y/50))*255;
 		var value = 0;
 		var color = "";
+		var img = null;
 		if (y < height) {
 			value = 255;
 			color = {"r":255, "g":255, "b":255};
@@ -32,7 +35,7 @@ for (var x = 0; x < size; x++) {
 		}
 		//tiles[x * size + y] = {"x":x, "y":y, "color":"rgb(" + 200+random(0,55) + ", " + random(0,10) + ", " + 0 + ")"};
 		//tiles[x * size + y] = {"x":x, "y":y, "color":"rgb(" + range(0,20) + ", " + (200+range(0, 55)) + "," + range(0,5) + ")"};
-		tiles[x * size + y] = {"x":x, "y":y, "color":color, "type":value/255, "light":0};
+		tiles[x * size + y] = {"x":x, "y":y, "color":color, "type":value/255, "light":0, "img":img};
 	}
 	var by = getTopBlock(x).y;
 	getBlock(x,by).color = {"r": 0, "g":255, "b":0};
@@ -43,13 +46,21 @@ for (var x = 0; x < size; x++) {
 }
 for (var i = 0; i < size/10; i++) {
 	var position = {"x":Math.floor(Math.random()*size),"y":Math.floor(Math.random()*size)};
-	for (var length = 0; length < 100; length++) {
-		var replaceBlocks = [{"x":0, "y":0}, {"x":0, "y":1}, {"x":0, "y":-1}, {"x":1, "y":0}, {"x":-1, "y":0}, {"x":1, "y":1}, {"x":-1, "y":-1}, {"x":1, "y":-1}, {"x":-1, "y":1}];
+	for (var length = 0; length < 10; length++) {
 		var dir = noise.perlin2(position.x / 10, position.y / 10)*10;
 		for (var step = 0; step < 4; step++) {
-			for (var b = 0; b < replaceBlocks.length; b++) {
-				getBlock(position.x+replaceBlocks[b].x, position.y+replaceBlocks[b].y).type = 1;
-				getBlock(position.x+replaceBlocks[b].x, position.y+replaceBlocks[b].y).color = {"r":255, "g":255, "b":255};
+			var radius = 5;
+			for (var dx = -radius; dx  < radius+1; dx++) {
+				for (var dy = -radius; dy  < radius+1; dy++) {
+					var bx = position.x+dx;
+					var by = position.y+dy;
+					var dist = Math.abs(Math.sqrt(Math.pow(position.x-bx, 2) + Math.pow(position.y-by, 2)));
+					//log(dist);
+					if (dist < radius) {
+						getBlock(bx, by).type = 1;
+						getBlock(bx, by).color = {"r":255, "g":255, "b":255};
+					}
+				}
 			}
 			position.x += Math.floor(Math.sin(dir)*3);
 			position.y += Math.floor(Math.cos(dir)*3);
@@ -57,10 +68,15 @@ for (var i = 0; i < size/10; i++) {
 	}
 }
 
+
+
 for (var x = 0; x < size; x++) {
 	liquids.push({"x":x, "y":0, "type":0, "dir":1, "evap":0, "amount":1});
 }
 
+//for (var b = 0; b < tiles.length; b++) {
+	//lightUpdate(b);
+//}
 var player = {"x": 0, "y": 0, "sy":0, inAir:10};
 var speed = 0.5;
 var scrollX = 0;
@@ -98,7 +114,7 @@ function animate() {
   
   if (keysDown.includes("w")) {
     if (player.inAir < 6) {
-		player.sy = -0.7;
+		player.sy = -0.7*2;
 	}
   }
 
@@ -132,6 +148,12 @@ function animate() {
   while (i < liquids.length) {
 	  i += drawLiquid(liquids[i]);
 	  i++;
+  }
+  //ctx.fillText(liquids.length, 100, 100);
+  for (var i = liquids.length-1; i > -1; i--) {
+	  if (liquids[i].amount < 0.1) {
+		liquids.splice(i, 1);
+	  }
   }
   //getBlock(Math.floor(player.x/zoom), Math.floor(player.y/zoom)).color = "rgb(255,0,0)";
   ctx.fillStyle = "red";
@@ -170,8 +192,12 @@ function drawTile(tile) {
 	if (tile.x*zoom-scrollX+cvWidth/2 > -size && tile.x*zoom-scrollX+cvWidth/2 < cvWidth) {
 		if (tile.y*zoom-scrollY+cvHeight/2 > -size && tile.y*zoom-scrollY+cvHeight/2 < cvHeight) {
 			lightUpdate(tile.x * size + tile.y);
-			ctx.fillStyle = colorToString(colorMultiply(tile.color, Math.min(tile.light, 1)));
-			ctx.fillRect(tile.x*zoom-scrollX+cvWidth/2, tile.y*zoom-scrollY+cvHeight/2, zoom+1, zoom+1);
+			if (tile.img == null) {
+				ctx.fillStyle = colorToString(colorMultiply(tile.color, Math.min(tile.light, 1)));
+				ctx.fillRect(tile.x*zoom-scrollX+cvWidth/2, tile.y*zoom-scrollY+cvHeight/2, zoom+1, zoom+1);
+			} else {
+				ctx.drawImage(tile.img, tile.x*zoom-scrollX+cvWidth/2, tile.y*zoom-scrollY+cvHeight/2, zoom+1, zoom+1);
+			}
 			//ctx.fillStyle = "red";
 			//ctx.fillText((y-getTopBlock(tile.x).y)/1000, tile.x*zoom-scrollX+cvWidth/2, tile.y*zoom-scrollY+cvHeight/2);
 			//if (getTopBlock(tile.x).y < tile.y) {
@@ -184,12 +210,12 @@ function drawTile(tile) {
 }
 
 function drawLiquid(liquid) {
-	//if (liquid.x*zoom-scrollX+cvWidth/2 > -size && liquid.x*zoom-scrollX+cvWidth/2 < cvWidth) {
-	//	if (liquid.y*zoom-scrollY+cvHeight/2 > -size && liquid.y*zoom-scrollY+cvHeight/2 < cvHeight) {
+	if (liquid.x*zoom-scrollX+cvWidth/2 > -size && liquid.x*zoom-scrollX+cvWidth/2 < cvWidth) {
+		if (liquid.y*zoom-scrollY+cvHeight/2 > -size && liquid.y*zoom-scrollY+cvHeight/2 < cvHeight) {
 			ctx.fillStyle = colorToString(colorMultiply({"r":0, "g":0, "b":255}, Math.min(getBlock(liquid.x, liquid.y).light, 1)));
 			ctx.fillRect(liquid.x*zoom-scrollX+cvWidth/2, liquid.y*zoom-scrollY+cvHeight/2+zoom-((zoom+1)*liquid.amount), zoom+1, (zoom+1)*liquid.amount);
-	//	}
-	//}
+		}
+	}
 	if (getBlock(liquid.x, liquid.y+1).type == 1 && getLiquid(liquid.x, liquid.y+1) == null) {
 		liquid.y++;
 		liquid.evap++;
@@ -197,10 +223,17 @@ function drawLiquid(liquid) {
 		if (getBlock(liquid.x+liquid.dir, liquid.y).type == 1 && getLiquid(liquid.x+liquid.dir, liquid.y) == null) {
 			liquid.x += liquid.dir;
 			liquid.evap++;
-			//liquids.push({"x":x*-1, "y":y, "type":0, "dir":1, "evap":0, "amount":1});
-			//liquids[getLiquidIndex(liquid.x, liquid.y)].amount /= 2;
+			//liquids.push({"x":liquid.x+liquid.dir, "y":y, "type":0, "dir":1, "evap":0, "amount":liquid.amount/2});
+			//liquids[getLiquidIndex(liquid.x, liquid.y)].amount = liquid.amount/2;
 		} else {
 			liquid.dir *= -1;
+		}
+	}
+	if (getLiquid(liquid.x+liquid.dir, liquid.y) != null) {
+		if (getLiquid(liquid.x+liquid.dir, liquid.y).amount < liquid.amount) {
+			var half = (getLiquid(liquid.x+liquid.dir, liquid.y)-liquid.amount)/2
+			//getLiquid(liquid.x+liquid.dir, liquid.y).amount += half;
+			//liquids[getLiquidIndex(liquid.x, liquid.y)].amount -= half;
 		}
 	}
 	if (liquid.evap > 100) {
@@ -241,19 +274,19 @@ function lightUpdate(tileIndex) {
 	}
 	var u = getBlock(tiles[tileIndex].x, tiles[tileIndex].y-1).light;
 	if (getBlock(tiles[tileIndex].x, tiles[tileIndex].y-1).type == 0) {
-		u = 0;
+		u = 0.1;
 	}
 	var d = getBlock(tiles[tileIndex].x, tiles[tileIndex].y+1).light;
 	if (getBlock(tiles[tileIndex].x, tiles[tileIndex].y+1).type == 0) {
-		d = 0;
+		d = 0.1;
 	}
 	var r = getBlock(tiles[tileIndex].x+1, tiles[tileIndex].y).light;
 	if (getBlock(tiles[tileIndex].x+1, tiles[tileIndex].y).type == 0) {
-		r = 0;
+		r = 0.1;
 	}
 	var l = getBlock(tiles[tileIndex].x-1, tiles[tileIndex].y).light;
 	if (getBlock(tiles[tileIndex].x-1, tiles[tileIndex].y).type == 0) {
-		l = 0;
+		l = 0.1;
 	}
 	tiles[tileIndex].light = (u+d+r+l)/4;
 	tiles[tileIndex].light = Math.max(Math.min(tiles[tileIndex].light, 1), 0.05);
@@ -329,7 +362,7 @@ function log(text) {
 	//var t = document.createTextNode(text + "\n");
 	//h.appendChild(t); 
 	var h = document.createElement("H1");
-  var t = document.createTextNode("Hello World");
+  var t = document.createTextNode(text);
   h.appendChild(t);
   document.body.appendChild(h);
 }
