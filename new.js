@@ -11,12 +11,12 @@ var size = 1000;
 var zoom = 30;
 var textures = false;
 var h = document.createElement("H1");
-var grassImg = document.getElementById("grass");
-var stoneImg = document.getElementById("stone");
-var dirtImg = document.getElementById("dirt");
-grassImg.remove();
-dirtImg.remove();
-stoneImg.remove();
+var grassImg = null;//document.getElementById("grass");
+var stoneImg = null;//document.getElementById("stone");
+var dirtImg = null;//document.getElementById("dirt");
+//grassImg.remove();
+//dirtImg.remove();
+//stoneImg.remove();
 //log(typeof(img));
 noise.seed(Math.random());
 for (var x = 0; x < size; x++) {
