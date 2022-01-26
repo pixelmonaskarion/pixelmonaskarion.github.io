@@ -6,10 +6,17 @@ var x = 0;
 var keysDown = [];
 var tiles = [];
 var liquids = [];
+var particles = [];
 var size = 1000;
-var zoom = 10;
+var zoom = 30;
+var textures = false;
 var h = document.createElement("H1");
-var testImg = document.getElementById("img");
+var grassImg = document.getElementById("grass");
+var stoneImg = document.getElementById("stone");
+var dirtImg = document.getElementById("dirt");
+grassImg.remove();
+dirtImg.remove();
+stoneImg.remove();
 //log(typeof(img));
 noise.seed(Math.random());
 for (var x = 0; x < size; x++) {
@@ -28,19 +35,25 @@ for (var x = 0; x < size; x++) {
 			//color = {"r":100, "g":50, "b":0};
 		} else {
 			color = {"r":100, "g":100, "b":100};
+			img = stoneImg;
 		}
 		if (cave > 80) {
 			value = 255;
 			color = {"r":255, "g":255, "b":255};
+			img = null;
 		}
 		//tiles[x * size + y] = {"x":x, "y":y, "color":"rgb(" + 200+random(0,55) + ", " + random(0,10) + ", " + 0 + ")"};
 		//tiles[x * size + y] = {"x":x, "y":y, "color":"rgb(" + range(0,20) + ", " + (200+range(0, 55)) + "," + range(0,5) + ")"};
 		tiles[x * size + y] = {"x":x, "y":y, "color":color, "type":value/255, "light":0, "img":img};
 	}
 	var by = getTopBlock(x).y;
-	getBlock(x,by).color = {"r": 0, "g":255, "b":0};
+	getBlock(x,by).img = grassImg;
+	getBlock(x, by).color = {"r":0, "g":255, "b":0};
 	for (var dirt = 1; dirt < 6; dirt++) {
-		getBlock(x,by+dirt).color = {"r":100, "g":50, "b":0};
+		if (getBlock(x,by+dirt).type == 0) {
+			getBlock(x,by+dirt).img = dirtImg;
+			getBlock(x, by+dirt).color = {"r":100, "g":50, "b":0};
+		}
 	}
 	//tiles[0] = {"x":0, "y":0 "color":"rgb(0,0,0)", "type":"0"};
 }
@@ -59,6 +72,7 @@ for (var i = 0; i < size/10; i++) {
 					if (dist < radius) {
 						getBlock(bx, by).type = 1;
 						getBlock(bx, by).color = {"r":255, "g":255, "b":255};
+						getBlock(bx, by).img = null;
 					}
 				}
 			}
@@ -77,10 +91,11 @@ for (var x = 0; x < size; x++) {
 //for (var b = 0; b < tiles.length; b++) {
 	//lightUpdate(b);
 //}
-var player = {"x": 0, "y": 0, "sy":0, inAir:10};
-var speed = 0.5;
+var player = {"x": 0, "y": 0, "sy":0, inAir:10, "hook":null, jumped:false};
+var speed = 0.2;
 var scrollX = 0;
 var scrollY = 0;
+var ticks = 0;
 
 document.addEventListener('keydown', keyWentDown);
 document.addEventListener('keyup', keyWentUp);
@@ -102,26 +117,38 @@ function handleMouseMove(evt) {
 	my = evt.clientY-8;
 }
 
+function secondJump() {
+	if (player.jumped == 1) {
+		player.sy = -1;
+		player.jumped = 2;
+			for (var i = 0; i < 5; i++) {
+			var dir = (Math.random()*10)%Math.PI-Math.PI/2;
+			particles.push({"x":player.x+zoom/2, "y":player.y+zoom/2, "sx":Math.sin(dir)*10, "sy":Math.cos(dir)*10, "time":100, "maxTime":100, "dir":45});
+		}
+	}
+}
 
 function animate() {
 // call again next time we can draw
   requestAnimationFrame(animate);
   ctx.clearRect(0, 0, cvWidth, cvHeight);
+  ticks++;
   ctx.canvas.width  = window.innerWidth-16;
   ctx.canvas.height = window.innerHeight-16;
   cvWidth = window.innerWidth-16;
   cvHeight = window.innerHeight-16;
   
   if (keysDown.includes("w")) {
-    if (player.inAir < 6) {
-		player.sy = -0.7*2;
+    if (player.jumped == 0) {
+		player.jumped = 1;
+		player.sy += -0.7;
 	}
   }
 
   //if (keysDown.includes("s")) {
   //  moveY(speed*zoom);
   //}
-  player.sy += 0.1;
+  player.sy += 0.05;
   player.inAir += 1;
   moveY(player.sy*zoom);
 
@@ -136,8 +163,8 @@ function animate() {
   //for (var i = 0; i < tiles.length; i++) {
   //  drawTile(tiles[i]);
   //}
-  for (var x = Math.floor((scrollX-cvWidth/2)/zoom); x < Math.floor((scrollX+cvWidth/2)/zoom); x++) {
-	for (var y = Math.floor((scrollY-cvHeight/2)/zoom); y < Math.floor((scrollY+cvHeight/2)/zoom); y++) {
+  for (var x = Math.floor((scrollX-cvWidth/2)/zoom); x < Math.floor((scrollX+cvWidth/2+zoom)/zoom); x++) {
+	for (var y = Math.floor((scrollY-cvHeight/2)/zoom); y < Math.floor((scrollY+cvHeight/2+zoom)/zoom); y++) {
 		var index = y + size * x;
 		if (index > -1 && index < size*size) {
 			drawTile(tiles[index]);
@@ -158,12 +185,45 @@ function animate() {
   //getBlock(Math.floor(player.x/zoom), Math.floor(player.y/zoom)).color = "rgb(255,0,0)";
   ctx.fillStyle = "red";
   ctx.fillRect(player.x-scrollX+cvWidth/2, player.y-scrollY+cvHeight/2, zoom, zoom);
+  
+  for (var i = 0; i < particles.length; i++) {
+	  ctx.globalAlpha = particles[i].time/particles[i].maxTime;
+	ctx.save();
+
+	ctx.translate(particles[i].x-scrollX+cvWidth/2+5, particles[i].y-scrollY+cvHeight/2+5);
+	ctx.rotate(ticks*10%360 * Math.PI/180);
+
+	//ctx.fillRect(x, y, w, h);
+	ctx.fillStyle = "hsl("+(particles[i].maxTime-particles[i].time)*5+", 100%, 50%)";
+	ctx.fillRect(-5, -5, 10, 10);
+
+	ctx.restore();
+	  
+	  ctx.globalAlpha = 1;
+	  particles[i].time--;
+	  if (getBlock(Math.floor(particles[i].x/zoom), Math.floor(particles[i].y/zoom)).type == 1) {
+		particles[i].y += particles[i].sy;
+		particles[i].x += particles[i].sx;
+	  }
+	  particles[i].sx *= 0.9;
+	  particles[i].sy *= 0.9;
+	  particles[i].sy += 0.5;
+  }
+  
+  var finalL = particles.length;
+  for (var i = finalL-1; i > -1; i--) {
+	  if (particles[i].time <= 0) {
+		  particles.splice(i, 1);
+	  }
+  }
+  
   //getBlock(Math.floor(player.x/zoom), Math.floor(player.y/zoom)).light = 100;
   if (mouseDown[0] == 1 || keysDown.includes("x")) {
 		var mbx = Math.floor((mx+scrollX-cvWidth/2)/zoom);
 		var mby = Math.floor((my+scrollY-cvHeight/2)/zoom);
 		getBlock(mbx, mby).type = 1;
 		getBlock(mbx, mby).color = {"r":255, "g":255, "b":255};
+		getBlock(mbx, mby).img = null;
 		//ctx.fillText("("+mbx+","+mby+")", mx, my);
   }
   if (mouseDown[1] == 1 || keysDown.includes("c")) {
@@ -171,12 +231,14 @@ function animate() {
 		var mby = Math.floor((my+scrollY-cvHeight/2)/zoom);
 		getBlock(mbx, mby).type = 0;
 		getBlock(mbx, mby).color = {"r":0, "g":0, "b":0};
+		getBlock(mbx, mby).img = null;
   }
   if (keysDown.includes("l")) {
 		var mbx = Math.floor((mx+scrollX-cvWidth/2)/zoom);
 		var mby = Math.floor((my+scrollY-cvHeight/2)/zoom);
 		getBlock(mbx, mby).type = 1;
 		getBlock(mbx, mby).color = {"r":255, "g":255, "b":0};
+		getBlock(mbx, mby).img = null;
   }
   scroll();
   //ctx.fillRect(0,0,100,100);
@@ -185,16 +247,21 @@ function animate() {
 
 function scroll() {
   scrollX += (player.x-scrollX)/10;
-  scrollY += (player.y-scrollY)/10;
+  scrollY += (player.y-scrollY)/20;
 }
 
 function drawTile(tile) {
 	if (tile.x*zoom-scrollX+cvWidth/2 > -size && tile.x*zoom-scrollX+cvWidth/2 < cvWidth) {
 		if (tile.y*zoom-scrollY+cvHeight/2 > -size && tile.y*zoom-scrollY+cvHeight/2 < cvHeight) {
 			lightUpdate(tile.x * size + tile.y);
-			if (tile.img == null) {
-				ctx.fillStyle = colorToString(colorMultiply(tile.color, Math.min(tile.light, 1)));
-				ctx.fillRect(tile.x*zoom-scrollX+cvWidth/2, tile.y*zoom-scrollY+cvHeight/2, zoom+1, zoom+1);
+			if (tile.img == null || textures != true) {
+				if (tile.type == 1) {
+					ctx.fillStyle = colorToString(colorMultiply(tile.color, Math.min(tile.light, 1)));
+					ctx.fillRect(tile.x*zoom-scrollX+cvWidth/2, tile.y*zoom-scrollY+cvHeight/2, zoom+1, zoom+1);
+				} else {
+					ctx.fillStyle = colorToString(tile.color);
+					ctx.fillRect(tile.x*zoom-scrollX+cvWidth/2, tile.y*zoom-scrollY+cvHeight/2, zoom+1, zoom+1);
+				}
 			} else {
 				ctx.drawImage(tile.img, tile.x*zoom-scrollX+cvWidth/2, tile.y*zoom-scrollY+cvHeight/2, zoom+1, zoom+1);
 			}
@@ -325,6 +392,12 @@ function keyWentDown(e) {
   if (!keysDown.includes(e.key.toLowerCase())) {
     keysDown.push(e.key.toLowerCase());
   }
+  if (e.key.toLowerCase() == "t") {
+	 // textures = !textures;
+  }
+  if (e.key.toLowerCase() == "w") {
+	  secondJump();
+  }
 }
 
 function getBlock(x, y) {
@@ -376,11 +449,14 @@ function moveX(x) {
 
 function moveY(y) {
 	player.y += y;
+	if (player.jumped != 2) {
+		player.jumped = 1;
+	}
 	while(playerTouchingBlocks()) {
 		player.y -= y/Math.abs(y);
 		player.sy = 0;
 		if (y > 0) {
-			player.inAir = 0;
+			player.jumped = 0;
 		}
 	}
 }
