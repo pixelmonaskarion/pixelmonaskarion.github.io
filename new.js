@@ -9,14 +9,18 @@ var liquids = [];
 var particles = [];
 var size = 1000;
 var zoom = 30;
-var textures = false;
+var textures = true;
 var h = document.createElement("H1");
-var grassImg = null;//document.getElementById("grass");
-var stoneImg = null;//document.getElementById("stone");
-var dirtImg = null;//document.getElementById("dirt");
-//grassImg.remove();
-//dirtImg.remove();
-//stoneImg.remove();
+var grassImg = document.getElementById("grass");
+var stoneImg = document.getElementById("stone");
+var dirtImg = document.getElementById("dirt");
+grassImg.remove();
+dirtImg.remove();
+stoneImg.remove();
+ctx.mozImageSmoothingEnabled = true;
+ctx.webkitImageSmoothingEnabled = true;
+ctx.msImageSmoothingEnabled = true;
+ctx.imageSmoothingEnabled = true;
 //log(typeof(img));
 noise.seed(Math.random());
 for (var x = 0; x < size; x++) {
@@ -121,14 +125,20 @@ function secondJump() {
 	if (player.jumped == 1) {
 		player.sy = -1;
 		player.jumped = 2;
-			for (var i = 0; i < 5; i++) {
-			var dir = (Math.random()*10)%Math.PI-Math.PI/2;
-			particles.push({"x":player.x+zoom/2, "y":player.y+zoom/2, "sx":Math.sin(dir)*10, "sy":Math.cos(dir)*10, "time":100, "maxTime":100, "dir":45});
-		}
+		//for (var i = 0; i < 5; i++) {
+		//	var dir = (Math.random()*10)%Math.PI-Math.PI/2;
+		//	particles.push({"x":player.x+zoom/2, "y":player.y+zoom/2, "sx":Math.sin(dir)*10, "sy":Math.cos(dir)*10, "time":100, "maxTime":100, "dir":45});
+		//}
 	}
 }
 
 function animate() {
+	if (player.jumped == 2) {
+	for (var i = 0; i < 10; i++) {
+		var dir = (Math.random()*10);
+		particles.push({"x":player.x+zoom/2, "y":player.y+zoom/2, "sx":Math.sin(dir)*10, "sy":Math.cos(dir)*10, "time":100, "maxTime":100, "dir":45});
+	}
+	}
 // call again next time we can draw
   requestAnimationFrame(animate);
   ctx.clearRect(0, 0, cvWidth, cvHeight);
@@ -171,6 +181,17 @@ function animate() {
 		}
 	}		
   }
+ // for (var i = 0; i < tiles.length; i++) {
+//	  lightUpdate(i);
+  //}
+  for (var x = Math.floor((scrollX-cvWidth)/zoom); x < Math.floor((scrollX+cvWidth/2+zoom)/zoom); x++) {
+	for (var y = Math.floor((scrollY-cvHeight)/zoom); y < Math.floor((scrollY+cvHeight+zoom)/zoom); y++) {
+		index = y + size * x;
+		if (index > -1 && index < size*size) {
+			lightUpdate(index);
+		}
+	}		
+  }
   var i = 0;
   while (i < liquids.length) {
 	  i += drawLiquid(liquids[i]);
@@ -201,10 +222,25 @@ function animate() {
 	  
 	  ctx.globalAlpha = 1;
 	  particles[i].time--;
-	  if (getBlock(Math.floor(particles[i].x/zoom), Math.floor(particles[i].y/zoom)).type == 1) {
-		particles[i].y += particles[i].sy;
-		particles[i].x += particles[i].sx;
+	  getBlock(Math.floor(particles[i].x/zoom), Math.floor(particles[i].y/zoom)).light += 0.1/(particles[i].time/particles[i].maxTime);
+	 // if (getBlock(Math.floor(particles[i].x/zoom), Math.floor(particles[i].y/zoom)).type == 1) {
+	//	particles[i].y += particles[i].sy;
+	//	particles[i].x += particles[i].sx;
+	  //}
+	  particles[i].y += particles[i].sy;
+	  if (particles[i].sy != 0) {
+		while (getBlock(Math.floor(particles[i].x/zoom), Math.floor(particles[i].y/zoom)).type != 1) {
+			particles[i].y -= particles[i].sy/Math.abs(particles[i].sy);
+		}
 	  }
+	  particles[i].x += particles[i].sx;
+	  if (particles[i].sx != 0) {
+		while (getBlock(Math.floor(particles[i].x/zoom), Math.floor(particles[i].y/zoom)).type != 1) {
+			particles[i].x -= particles[i].sx/Math.abs(particles[i].sx);
+		}
+	  }
+
+	  
 	  particles[i].sx *= 0.9;
 	  particles[i].sy *= 0.9;
 	  particles[i].sy += 0.5;
@@ -253,7 +289,7 @@ function scroll() {
 function drawTile(tile) {
 	if (tile.x*zoom-scrollX+cvWidth/2 > -size && tile.x*zoom-scrollX+cvWidth/2 < cvWidth) {
 		if (tile.y*zoom-scrollY+cvHeight/2 > -size && tile.y*zoom-scrollY+cvHeight/2 < cvHeight) {
-			lightUpdate(tile.x * size + tile.y);
+			//lightUpdate(tile.x * size + tile.y);
 			if (tile.img == null || textures != true) {
 				if (tile.type == 1) {
 					ctx.fillStyle = colorToString(colorMultiply(tile.color, Math.min(tile.light, 1)));
@@ -449,8 +485,8 @@ function moveX(x) {
 
 function moveY(y) {
 	player.y += y;
-	if (player.jumped != 2) {
-		player.jumped = 1;
+	if (player.jumped != 1 && player.jumped != 2) {
+		player.jumped = 3;
 	}
 	while(playerTouchingBlocks()) {
 		player.y -= y/Math.abs(y);
