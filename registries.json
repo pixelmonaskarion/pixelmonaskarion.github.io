@@ -1,0 +1,7 @@
+"blocks": [
+	"grass":{"rgb":{"r":0, "g":255, "b":0}, "image":"grass", "type":0}
+	"stone":{"rgb":{"r":100, "g":100, "b":100}, "image":"stone", "type":0}
+	"dirt":{"rgb":{"r":100, "g":50, "b":0}, "image":"dirt", "type":0}
+	"air":{"rgb":{"r":255, "g":255, "b":255}, "type":1}
+	"light":{"rgb":{"r":255, "g":255, "b":0}, "type":1}
+]
