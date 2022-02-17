@@ -2,8 +2,10 @@ var canvas = document.getElementById("canvas");
 var cvWidth = canvas.width;
 var cvHeight = canvas.height;
 var ctx = canvas.getContext("2d");
+var offline = true;
 var x = 0;
 var keysDown = [];
+var codesDown = [];
 var tiles = [];
 var liquids = [];
 var particles = [];
@@ -17,6 +19,10 @@ var dirtImg = document.getElementById("dirt");
 grassImg.remove();
 dirtImg.remove();
 stoneImg.remove();
+window.oncontextmenu = function ()
+{
+    return false;     // cancel default menu
+}
 ctx.mozImageSmoothingEnabled = true;
 ctx.webkitImageSmoothingEnabled = true;
 ctx.msImageSmoothingEnabled = true;
@@ -96,6 +102,8 @@ for (var x = 0; x < size; x++) {
 	//lightUpdate(b);
 //}
 var player = {"x": 0, "y": 0, "sy":0, inAir:10, "hook":null, jumped:false};
+var inventory = [{"type":"pick"}, {"type":"stone"}, {"type":"dirt"}, {"type":"grass"}, {"type":"light"}];
+var slot = 0;
 var speed = 0.2;
 var scrollX = 0;
 var scrollY = 0;
@@ -105,7 +113,7 @@ document.addEventListener('keydown', keyWentDown);
 document.addEventListener('keyup', keyWentUp);
 var mouseDown = [0, 0, 0, 0, 0, 0, 0, 0, 0],
     mouseDownCount = 0;
-document.body.onmousedown = function(evt) { 
+document.body.onmousedown = function(evt) {
   ++mouseDown[evt.button];
   ++mouseDownCount;
 }
@@ -184,8 +192,8 @@ function animate() {
  // for (var i = 0; i < tiles.length; i++) {
 //	  lightUpdate(i);
   //}
-  for (var x = Math.floor((scrollX-cvWidth)/zoom); x < Math.floor((scrollX+cvWidth/2+zoom)/zoom); x++) {
-	for (var y = Math.floor((scrollY-cvHeight)/zoom); y < Math.floor((scrollY+cvHeight+zoom)/zoom); y++) {
+  for (var x = Math.floor((scrollX-cvWidth*2)/zoom); x < Math.floor((scrollX+cvWidth*2+zoom)/zoom); x++) {
+	for (var y = Math.floor((scrollY-cvHeight*2)/zoom); y < Math.floor((scrollY+cvHeight*2+zoom)/zoom); y++) {
 		index = y + size * x;
 		if (index > -1 && index < size*size) {
 			lightUpdate(index);
@@ -208,7 +216,7 @@ function animate() {
   ctx.fillRect(player.x-scrollX+cvWidth/2, player.y-scrollY+cvHeight/2, zoom, zoom);
   
   for (var i = 0; i < particles.length; i++) {
-	  ctx.globalAlpha = particles[i].time/particles[i].maxTime;
+    ctx.globalAlpha = particles[i].time/particles[i].maxTime;
 	ctx.save();
 
 	ctx.translate(particles[i].x-scrollX+cvWidth/2+5, particles[i].y-scrollY+cvHeight/2+5);
@@ -257,28 +265,94 @@ function animate() {
   if (mouseDown[0] == 1 || keysDown.includes("x")) {
 		var mbx = Math.floor((mx+scrollX-cvWidth/2)/zoom);
 		var mby = Math.floor((my+scrollY-cvHeight/2)/zoom);
-		getBlock(mbx, mby).type = 1;
-		getBlock(mbx, mby).color = {"r":255, "g":255, "b":255};
-		getBlock(mbx, mby).img = null;
+		placeBlock(mbx, mby);
 		//ctx.fillText("("+mbx+","+mby+")", mx, my);
   }
-  if (mouseDown[1] == 1 || keysDown.includes("c")) {
-		var mbx = Math.floor((mx+scrollX-cvWidth/2)/zoom);
-		var mby = Math.floor((my+scrollY-cvHeight/2)/zoom);
-		getBlock(mbx, mby).type = 0;
-		getBlock(mbx, mby).color = {"r":0, "g":0, "b":0};
-		getBlock(mbx, mby).img = null;
+ // if (mouseDown[2] == 1 || keysDown.includes("c")) {
+//		var mbx = Math.floor((mx+scrollX-cvWidth/2)/zoom);
+//		var mby = Math.floor((my+scrollY-cvHeight/2)/zoom);
+//		getBlock(mbx, mby).type = 0;
+//		getBlock(mbx, mby).color = {"r":0, "g":0, "b":0};
+//		getBlock(mbx, mby).img = null;
+  //}
+ // if (keysDown.includes("l")) {
+//		var mbx = Math.floor((mx+scrollX-cvWidth/2)/zoom);
+//		var mby = Math.floor((my+scrollY-cvHeight/2)/zoom);
+//		getBlock(mbx, mby).type = 1;
+//		getBlock(mbx, mby).color = {"r":255, "g":255, "b":0};
+//		getBlock(mbx, mby).img = null;
+  //}
+  var x = (player.x+zoom/2);
+  var y = (player.y+zoom/2);
+  if (codesDown.includes("ArrowLeft")) {
+	  placeBlock(Math.floor(x/zoom)-1, Math.floor(y/zoom));
   }
-  if (keysDown.includes("l")) {
-		var mbx = Math.floor((mx+scrollX-cvWidth/2)/zoom);
-		var mby = Math.floor((my+scrollY-cvHeight/2)/zoom);
-		getBlock(mbx, mby).type = 1;
-		getBlock(mbx, mby).color = {"r":255, "g":255, "b":0};
-		getBlock(mbx, mby).img = null;
+  if (codesDown.includes("ArrowUp")) {
+	  placeBlock(Math.floor(x/zoom), Math.floor(y/zoom)-1);
+  }
+  if (codesDown.includes("ArrowDown")) {
+	  placeBlock(Math.floor(x/zoom), Math.floor(y/zoom)+1);
+  }
+  if (codesDown.includes("ArrowRight")) {
+	  placeBlock(Math.floor(x/zoom)+1, Math.floor(y/zoom));
   }
   scroll();
+  
+  for (var i = 0; i < inventory.length; i++) {
+	if (slot == i) {
+		ctx.fillStyle = "grey";
+	} else {
+		ctx.fillStyle = "white";
+	}
+	ctx.fillRect(i*zoom*2+10, 10, zoom*2, zoom*2);
+	if (inventory[i].type == "stone") {
+		ctx.drawImage(stoneImg, i*zoom*2+25, 25, zoom, zoom);
+	}
+	if (inventory[i].type == "grass") {
+		ctx.drawImage(grassImg, i*zoom*2+25, 25, zoom, zoom);
+	}
+	if (inventory[i].type == "dirt") {
+		ctx.drawImage(dirtImg, i*zoom*2+25, 25, zoom, zoom);
+	}
+	if (inventory[i].type == "light") {
+		ctx.fillStyle = "rgb(255, 255, 0)";
+		ctx.fillRect(i*zoom*2+25, 25, zoom, zoom);
+	}
+  }
   //ctx.fillRect(0,0,100,100);
   drawOutline();
+}
+
+function placeBlock(x, y) {
+	var before = Object.assign({}, getBlock(x, y));
+	if (inventory[slot].type == "stone") {
+		getBlock(x, y).type = 0	;
+		getBlock(x, y).color = {"r":100, "g":100, "b":100};
+		getBlock(x, y).img = stoneImg;
+	}
+	if (inventory[slot].type == "pick") {
+		getBlock(x, y).type = 1;
+		getBlock(x, y).color = {"r":255, "g":255, "b":255};
+		getBlock(x, y).img = null;
+	}
+	if (inventory[slot].type == "dirt") {
+		getBlock(x, y).type = 0;
+		getBlock(x, y).color = {"r":255, "g":255, "b":255};
+		getBlock(x, y).img = dirtImg;
+	}
+	if (inventory[slot].type == "grass") {
+		getBlock(x, y).type = 0;
+		getBlock(x, y).color = {"r":0, "g":255, "b":0};
+		getBlock(x, y).img = grassImg;
+	}
+	if (inventory[slot].type == "light") {
+		getBlock(x, y).type = 1;
+		getBlock(x, y).color = {"r":255, "g":255, "b":0};
+		getBlock(x, y).img = null;
+	}
+	if (playerTouchingBlocks()) {
+		setBlock(x, y, before);
+	}
 }
 
 function scroll() {
@@ -422,17 +496,25 @@ function drawOutline() {
 
 animate();
 
-
-
 function keyWentDown(e) {
-  if (!keysDown.includes(e.key.toLowerCase())) {
-    keysDown.push(e.key.toLowerCase());
+	//log(parseInt(e.key));
+  if (!isNaN(parseInt(e.key))) {
+	  slot = Math.max(Math.min(parseInt(e.key)-1, inventory.length-1), 0);
   }
   if (e.key.toLowerCase() == "t") {
 	 // textures = !textures;
   }
   if (e.key.toLowerCase() == "w") {
-	  secondJump();
+	  if (!keysDown.includes("w")) {
+		secondJump();
+	  }
+  }
+  if (!keysDown.includes(e.key.toLowerCase())) {
+    keysDown.push(e.key.toLowerCase());
+  }
+  //log(e.code);
+  if (!codesDown.includes(e.code)) {
+	  codesDown.push(e.code);
   }
 }
 
@@ -443,6 +525,13 @@ function getBlock(x, y) {
 	} else {
 		return {"x":x, "y":y, "type":1, "color":"white", "light":1};
 	}
+}
+
+function setBlock(x, y, block) {
+	//if (x > -1 && x < size && y > -1 && y < size) {
+		//log(JSON.stringify(block));
+		tiles[y + (size * x)] = block;
+	//}
 }
 
 function playerBlocks() {
@@ -498,12 +587,18 @@ function moveY(y) {
 }
 
 function keyWentUp(e) {
-  const index = keysDown.indexOf(e.key.toLowerCase());
+  var index = keysDown.indexOf(e.key.toLowerCase());
   if (index > -1) {
     keysDown.splice(index, 1);
+  }
+  index = codesDown.indexOf(e.code);
+  if (index > -1) {
+    codesDown.splice(index, 1);
   }
 }
 
 function range(min, max) {
   return min+Math.floor(Math.random() * max+1-min);
 }
+
+//var blocks = {"blocks": ["grass":{"rgb":{"r":0, "g":255, "b":0}, "image":"grass", "type":0}, "stone":{"rgb":{"r":100, "g":100, "b":100}, "image":"stone", "type":0}, "dirt":{"rgb":{"r":100, "g":50, "b":0}, "image":"dirt", "type":0}, "air":{"rgb":{"r":255, "g":255, "b":255}, "type":1}, "light":{"rgb":{"r":255, "g":255, "b":0}, "type":1}]};
