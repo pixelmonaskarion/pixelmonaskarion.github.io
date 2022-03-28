@@ -12,13 +12,26 @@ var particles = [];
 var size = 1000;
 var zoom = 30;
 var textures = true;
+var debug = false;
 var h = document.createElement("H1");
-var grassImg = document.getElementById("grass");
-var stoneImg = document.getElementById("stone");
-var dirtImg = document.getElementById("dirt");
-grassImg.remove();
-dirtImg.remove();
-stoneImg.remove();
+var blocks = {"grass":{"rgb":{"r":0, "g":255, "b":0}, "image":"grass", "type":0}, "stone":{"rgb":{"r":100, "g":100, "b":100}, "image":"stone", "type":0}, "dirt":{"rgb":{"r":100, "g":50, "b":0}, "image":"dirt", "type":0}, "air":{"rgb":{"r":255, "g":255, "b":255}, "type":1}, "light":{"rgb":{"r":255, "g":255, "b":0}, "type":1}};
+var loadedImages = {};
+//var grassImg = document.getElementById("grass");
+//var stoneImg = document.getElementById("stone");
+//var dirtImg = document.getElementById("dirt");
+//grassImg.remove();
+//dirtImg.remove();
+//stoneImg.remove();
+log("before keys");
+var keys = Object.keys(blocks);
+log("before images");
+for (var i = 0; i < keys.length; i++) {
+	loadedImages[keys[i]] = document.getElementById(keys[i]);
+	if (document.getElementById(keys[i]) != null) {
+		document.getElementById(keys[i]).remove();
+	}
+}
+log("done");
 window.oncontextmenu = function ()
 {
     return false;     // cancel default menu
@@ -29,44 +42,41 @@ ctx.msImageSmoothingEnabled = true;
 ctx.imageSmoothingEnabled = true;
 //log(typeof(img));
 noise.seed(Math.random());
+log("before world");
 for (var x = 0; x < size; x++) {
-	var height = Math.floor((noise.perlin2(x/10, 0)+10)*5);
+	var height = Math.floor((noise.perlin2(x/20, 0)+10)*20);
 	for (var y = 0; y < size; y++) {
 		var cave = Math.abs(noise.perlin2(x/50,y/50))*255;
-		var value = 0;
-		var color = "";
-		var img = null;
+		var block = {};
 		if (y < height) {
-			value = 255;
-			color = {"r":255, "g":255, "b":255};
+			block = newBlock(x, y, "air");
 		//} else if (y == height) {
 			//color = {"r":0, "g":255, "b":0};
 		//} else if (y-5 < height) {
 			//color = {"r":100, "g":50, "b":0};
 		} else {
-			color = {"r":100, "g":100, "b":100};
-			img = stoneImg;
+			block = newBlock(x, y, "stone");
 		}
 		if (cave > 80) {
-			value = 255;
-			color = {"r":255, "g":255, "b":255};
-			img = null;
+			block = newBlock(x, y, "air");
 		}
 		//tiles[x * size + y] = {"x":x, "y":y, "color":"rgb(" + 200+random(0,55) + ", " + random(0,10) + ", " + 0 + ")"};
 		//tiles[x * size + y] = {"x":x, "y":y, "color":"rgb(" + range(0,20) + ", " + (200+range(0, 55)) + "," + range(0,5) + ")"};
-		tiles[x * size + y] = {"x":x, "y":y, "color":color, "type":value/255, "light":0, "img":img};
+		//tiles[x * size + y] = {"x":x, "y":y, "color":color, "type":value/255, "light":0, "img":img};
+		tiles[x * size + y] = block;
 	}
 	var by = getTopBlock(x).y;
-	getBlock(x,by).img = grassImg;
-	getBlock(x, by).color = {"r":0, "g":255, "b":0};
+	//log(by);
+	setBlock(x,by, newBlock(x, by, "grass"));
 	for (var dirt = 1; dirt < 6; dirt++) {
 		if (getBlock(x,by+dirt).type == 0) {
-			getBlock(x,by+dirt).img = dirtImg;
-			getBlock(x, by+dirt).color = {"r":100, "g":50, "b":0};
+			setBlock(x,by+dirt, newBlock(x, by+dirt, "dirt"));
 		}
 	}
 	//tiles[0] = {"x":0, "y":0 "color":"rgb(0,0,0)", "type":"0"};
 }
+log("finished initial world");
+
 for (var i = 0; i < size/10; i++) {
 	var position = {"x":Math.floor(Math.random()*size),"y":Math.floor(Math.random()*size)};
 	for (var length = 0; length < 10; length++) {
@@ -80,9 +90,7 @@ for (var i = 0; i < size/10; i++) {
 					var dist = Math.abs(Math.sqrt(Math.pow(position.x-bx, 2) + Math.pow(position.y-by, 2)));
 					//log(dist);
 					if (dist < radius) {
-						getBlock(bx, by).type = 1;
-						getBlock(bx, by).color = {"r":255, "g":255, "b":255};
-						getBlock(bx, by).img = null;
+						setBlock(bx, by, newBlock(bx, by, "air"));
 					}
 				}
 			}
@@ -91,22 +99,23 @@ for (var i = 0; i < size/10; i++) {
 		}
 	}
 }
-
+log("after setup");
 
 
 for (var x = 0; x < size; x++) {
-	liquids.push({"x":x, "y":0, "type":0, "dir":1, "evap":0, "amount":1});
+	liquids.push({"x":x, "y":100, "type":0, "dir":1, "evap":0, "amount":1});
 }
 
 //for (var b = 0; b < tiles.length; b++) {
 	//lightUpdate(b);
 //}
-var player = {"x": 0, "y": 0, "sy":0, inAir:10, "hook":null, jumped:false};
-var inventory = [{"type":"pick"}, {"type":"stone"}, {"type":"dirt"}, {"type":"grass"}, {"type":"light"}];
+log("top block is: " + (getTopBlock(0).y-1));
+var player = {"x": 0, "y": (getTopBlock(0).y-1)*zoom, "sy":0, inAir:10, "hook":null, jumped:false};
+var inventory = [{"type":"air"}, {"type":"stone"}, {"type":"dirt"}, {"type":"grass"}, {"type":"light"}];
 var slot = 0;
 var speed = 0.2;
-var scrollX = 0;
-var scrollY = 0;
+var scrollX = player.x;
+var scrollY = player.y;
 var ticks = 0;
 
 document.addEventListener('keydown', keyWentDown);
@@ -129,24 +138,33 @@ function handleMouseMove(evt) {
 	my = evt.clientY-8;
 }
 
+function newBlock(x, y, block) {
+	//{"x":x, "y":y, "color":color, "type":value/255, "light":0, "img":img};
+	return {"x":x, "y":y, "color":blocks[block].rgb, "type":blocks[block].type, "light":0, "img":loadedImages[blocks[block].image]};
+}
+
 function secondJump() {
 	if (player.jumped == 1) {
 		player.sy = -1;
 		player.jumped = 2;
-		//for (var i = 0; i < 5; i++) {
-		//	var dir = (Math.random()*10)%Math.PI-Math.PI/2;
-		//	particles.push({"x":player.x+zoom/2, "y":player.y+zoom/2, "sx":Math.sin(dir)*10, "sy":Math.cos(dir)*10, "time":100, "maxTime":100, "dir":45});
-		//}
+		for (var i = 0; i < 10; i++) {
+			var dir = (Math.random()*10)%Math.PI-Math.PI/2;
+			particles.push({"x":player.x+zoom/2, "y":player.y+zoom/2, "sx":Math.sin(dir)*10, "sy":Math.cos(dir)*10, "time":100, "maxTime":100, "dir":45});
+		}
 	}
 }
 
+function rotate(x, y, theta) {
+	return {"x":x*Math.cos(theta)-y*Math.sin(theta), "y":x*Math.sin(theta)+y*Math.cos(theta)};
+}
+
 function animate() {
-	if (player.jumped == 2) {
-	for (var i = 0; i < 10; i++) {
-		var dir = (Math.random()*10);
-		particles.push({"x":player.x+zoom/2, "y":player.y+zoom/2, "sx":Math.sin(dir)*10, "sy":Math.cos(dir)*10, "time":100, "maxTime":100, "dir":45});
-	}
-	}
+	//if (player.jumped == 2) {
+	//for (var i = 0; i < 2; i++) {
+	//	var dir = (Math.random()*10);
+	//	particles.push({"x":player.x+zoom/2, "y":player.y+zoom/2, "sx":Math.sin(dir)*10, "sy":Math.cos(dir)*10, "time":100, "maxTime":100, "dir":45});
+	//}
+	//}
 // call again next time we can draw
   requestAnimationFrame(animate);
   ctx.clearRect(0, 0, cvWidth, cvHeight);
@@ -155,7 +173,7 @@ function animate() {
   ctx.canvas.height = window.innerHeight-16;
   cvWidth = window.innerWidth-16;
   cvHeight = window.innerHeight-16;
-  
+  log("before frame");
   if (keysDown.includes("w")) {
     if (player.jumped == 0) {
 		player.jumped = 1;
@@ -217,20 +235,24 @@ function animate() {
   
   for (var i = 0; i < particles.length; i++) {
     ctx.globalAlpha = particles[i].time/particles[i].maxTime;
-	ctx.save();
-
-	ctx.translate(particles[i].x-scrollX+cvWidth/2+5, particles[i].y-scrollY+cvHeight/2+5);
-	ctx.rotate(ticks*10%360 * Math.PI/180);
-
-	//ctx.fillRect(x, y, w, h);
 	ctx.fillStyle = "hsl("+(particles[i].maxTime-particles[i].time)*5+", 100%, 50%)";
-	ctx.fillRect(-5, -5, 10, 10);
-
-	ctx.restore();
-	  
+	ctx.beginPath();
+	var points = [{"x":-5, "y":-5}, {"x":-5, "y":5}, {"x":5, "y":5}, {"x":5, "y":-5}];
+	for (var p = 0; p < points.length; p++) {
+		var point = rotate(points[p].x, points[p].y, particles[i].time/10);
+		//var point = points[p];
+		if (Math.floor(point.x+particles[i].x-scrollX+cvWidth/2) < cvWidth && Math.floor(point.x+particles[i].x-scrollX+cvWidth/2) > 0) {
+			if (Math.floor(point.y+particles[i].y-scrollY+cvHeight/2) < cvHeight && Math.floor(point.y+particles[i].y-scrollY+cvHeight/2) > 0) {
+				ctx.lineTo(Math.floor(point.x+particles[i].x-scrollX+cvWidth/2), Math.floor(point.y+particles[i].y-scrollY+cvHeight/2));
+			}
+		}
+		//ctx.fillRect(point.x+particles[i].x-scrollX+cvWidth/2, point.y+particles[i].y-scrollY+cvHeight/2, 10, 10);
+	}
+	ctx.fill();
+	
 	  ctx.globalAlpha = 1;
 	  particles[i].time--;
-	  getBlock(Math.floor(particles[i].x/zoom), Math.floor(particles[i].y/zoom)).light += 0.1/(particles[i].time/particles[i].maxTime);
+	  //getBlock(Math.floor(particles[i].x/zoom), Math.floor(particles[i].y/zoom)).light += 0.1/(particles[i].time/particles[i].maxTime);
 	 // if (getBlock(Math.floor(particles[i].x/zoom), Math.floor(particles[i].y/zoom)).type == 1) {
 	//	particles[i].y += particles[i].sy;
 	//	particles[i].x += particles[i].sx;
@@ -305,17 +327,11 @@ function animate() {
 		ctx.fillStyle = "white";
 	}
 	ctx.fillRect(i*zoom*2+10, 10, zoom*2, zoom*2);
-	if (inventory[i].type == "stone") {
-		ctx.drawImage(stoneImg, i*zoom*2+25, 25, zoom, zoom);
-	}
-	if (inventory[i].type == "grass") {
-		ctx.drawImage(grassImg, i*zoom*2+25, 25, zoom, zoom);
-	}
-	if (inventory[i].type == "dirt") {
-		ctx.drawImage(dirtImg, i*zoom*2+25, 25, zoom, zoom);
-	}
-	if (inventory[i].type == "light") {
-		ctx.fillStyle = "rgb(255, 255, 0)";
+	var block = blocks[inventory[i].type];
+	if (block.image != null) {
+		ctx.drawImage(loadedImages[block.image], i*zoom*2+25, 25, zoom, zoom);
+	} else {
+		ctx.fillStyle = colorToString(block.rgb);
 		ctx.fillRect(i*zoom*2+25, 25, zoom, zoom);
 	}
   }
@@ -325,16 +341,15 @@ function animate() {
 
 function placeBlock(x, y) {
 	var before = Object.assign({}, getBlock(x, y));
-	if (inventory[slot].type == "stone") {
+	/*if (inventory[slot].type == "stone") {
 		getBlock(x, y).type = 0	;
 		getBlock(x, y).color = {"r":100, "g":100, "b":100};
 		getBlock(x, y).img = stoneImg;
-	}
-	if (inventory[slot].type == "pick") {
-		getBlock(x, y).type = 1;
-		getBlock(x, y).color = {"r":255, "g":255, "b":255};
-		getBlock(x, y).img = null;
-	}
+	}*/
+	setBlock(x, y, newBlock(x, y, inventory[slot].type));
+	lightUpdate(y + (size * x));
+	//getBlock(x, y).color = blocks[inventory[slot].type].rgb;
+	/*
 	if (inventory[slot].type == "dirt") {
 		getBlock(x, y).type = 0;
 		getBlock(x, y).color = {"r":255, "g":255, "b":255};
@@ -349,7 +364,7 @@ function placeBlock(x, y) {
 		getBlock(x, y).type = 1;
 		getBlock(x, y).color = {"r":255, "g":255, "b":0};
 		getBlock(x, y).img = null;
-	}
+	}*/
 	if (playerTouchingBlocks()) {
 		setBlock(x, y, before);
 	}
@@ -502,7 +517,7 @@ function keyWentDown(e) {
 	  slot = Math.max(Math.min(parseInt(e.key)-1, inventory.length-1), 0);
   }
   if (e.key.toLowerCase() == "t") {
-	 // textures = !textures;
+	 textures = !textures;
   }
   if (e.key.toLowerCase() == "w") {
 	  if (!keysDown.includes("w")) {
@@ -557,12 +572,14 @@ function playerTouchingBlocks() {
 }
 
 function log(text) {
-	//var t = document.createTextNode(text + "\n");
-	//h.appendChild(t); 
-	var h = document.createElement("H1");
-  var t = document.createTextNode(text);
-  h.appendChild(t);
-  document.body.appendChild(h);
+	if (debug) {
+		//var t = document.createTextNode(text + "\n");
+		//h.appendChild(t); 
+		var h = document.createElement("H1");
+		var t = document.createTextNode(text);
+		h.appendChild(t);
+		document.body.appendChild(h);
+	}
 }
 
 function moveX(x) {
@@ -600,5 +617,3 @@ function keyWentUp(e) {
 function range(min, max) {
   return min+Math.floor(Math.random() * max+1-min);
 }
-
-//var blocks = {"blocks": ["grass":{"rgb":{"r":0, "g":255, "b":0}, "image":"grass", "type":0}, "stone":{"rgb":{"r":100, "g":100, "b":100}, "image":"stone", "type":0}, "dirt":{"rgb":{"r":100, "g":50, "b":0}, "image":"dirt", "type":0}, "air":{"rgb":{"r":255, "g":255, "b":255}, "type":1}, "light":{"rgb":{"r":255, "g":255, "b":0}, "type":1}]};
