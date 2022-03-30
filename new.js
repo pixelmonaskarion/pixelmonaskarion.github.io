@@ -14,7 +14,7 @@ var zoom = 30;
 var textures = true;
 var debug = false;
 var h = document.createElement("H1");
-var blocks = {"grass":{"rgb":{"r":0, "g":255, "b":0}, "image":"grass", "type":0}, "stone":{"rgb":{"r":100, "g":100, "b":100}, "image":"stone", "type":0}, "dirt":{"rgb":{"r":100, "g":50, "b":0}, "image":"dirt", "type":0}, "air":{"rgb":{"r":255, "g":255, "b":255}, "type":1}, "light":{"rgb":{"r":255, "g":255, "b":0}, "type":1}};
+var blocks = {"grass":{"rgb":{"r":0, "g":255, "b":0}, "image":"grass", "type":0, "light":0}, "stone":{"rgb":{"r":100, "g":100, "b":100}, "image":"stone", "type":0, "light":0}, "dirt":{"rgb":{"r":100, "g":50, "b":0}, "image":"dirt", "type":0, "light":0}, "air":{"rgb":{"r":255, "g":255, "b":255}, "type":1, "light":0}, "light":{"rgb":{"r":255, "g":255, "b":0}, "type":1, "light":10}};
 var loadedImages = {};
 //var grassImg = document.getElementById("grass");
 //var stoneImg = document.getElementById("stone");
@@ -109,6 +109,7 @@ for (var x = 0; x < size; x++) {
 //for (var b = 0; b < tiles.length; b++) {
 	//lightUpdate(b);
 //}
+lightWorld();
 log("top block is: " + (getTopBlock(0).y-1));
 var player = {"x": 0, "y": (getTopBlock(0).y-1)*zoom, "sy":0, inAir:10, "hook":null, jumped:false};
 var inventory = [{"type":"air"}, {"type":"stone"}, {"type":"dirt"}, {"type":"grass"}, {"type":"light"}];
@@ -140,7 +141,7 @@ function handleMouseMove(evt) {
 
 function newBlock(x, y, block) {
 	//{"x":x, "y":y, "color":color, "type":value/255, "light":0, "img":img};
-	return {"x":x, "y":y, "color":blocks[block].rgb, "type":blocks[block].type, "light":0, "img":loadedImages[blocks[block].image]};
+	return {"x":x, "y":y, "color":blocks[block].rgb, "type":blocks[block].type, "light":blocks[block].light, "img":loadedImages[blocks[block].image], "name":block};
 }
 
 function secondJump() {
@@ -214,7 +215,7 @@ function animate() {
 	for (var y = Math.floor((scrollY-cvHeight*2)/zoom); y < Math.floor((scrollY+cvHeight*2+zoom)/zoom); y++) {
 		index = y + size * x;
 		if (index > -1 && index < size*size) {
-			lightUpdate(index);
+			//lightUpdate(index);
 		}
 	}		
   }
@@ -339,6 +340,55 @@ function animate() {
   drawOutline();
 }
 
+function lightWorld() {
+	var lightMap = new Array(size*size);
+	for (var x = 0; x < size; x++) {
+		for (var y = 0; y < size; y++) {
+			if (getTopBlock(x).y > y) {
+				setBlockField(x, y, "light", 10);
+			}
+			lightMap[y + (size * x)] = (blocks[getBlock(x, y).name].light != 0 || getTopBlock(x).y > y);
+		}
+	}
+	stop = false;
+	while (stop == false) {
+		stop = true;
+		//console.log(lightMap);
+		var newLightMap = new Array(size*size);
+		for (var x = 0; x < size; x++) {
+			for (var y = 0; y < size; y++) {
+				if (lightMap[y + (size * x)] == undefined) {
+					lightMap[y + (size * x)] = false;
+				}
+				if (lightMap[y + (size * x)] == true) {
+					//console.log("x: " + x + " y: " + y);
+					stop = false;
+					if (getBlock(x+1, y).light < getBlock(x, y).light) {
+						setBlockField(x+1, y, "light", getBlock(x, y).light-1);
+						//console.log("s: " + getBlock(x, y).light + " p: " + getBlock(x-1, y).light);
+						newLightMap[y + (size * (x+1))] = (getBlock(x+1, y).light > 0);
+					}
+					if (getBlock(x-1, y).light < getBlock(x, y).light) {
+						setBlockField(x-1, y, "light", getBlock(x, y).light-1);
+						//console.log("s: " + getBlock(x, y).light + " p: " + getBlock(x-1, y).light);
+						newLightMap[y + (size * (x-1))] = (getBlock(x-1, y).light > 0);
+					}
+					if (getBlock(x, y+1).light < getBlock(x, y).light) {
+						setBlockField(x, y+1, "light", getBlock(x, y).light-1);
+						newLightMap[y+1 + (size * x)] = (getBlock(x, y+1).light > 0);
+					}
+					if (getBlock(x, y-1).light < getBlock(x, y).light) {
+						setBlockField(x, y-1, "light", getBlock(x, y).light-1);
+						newLightMap[y-1 + (size * x)] = (getBlock(x, y-1).light > 0);
+					}
+				}
+			}
+		}
+		//console.log(newLightMap);
+		lightMap = newLightMap;
+	}
+}
+
 function placeBlock(x, y) {
 	var before = Object.assign({}, getBlock(x, y));
 	/*if (inventory[slot].type == "stone") {
@@ -347,7 +397,8 @@ function placeBlock(x, y) {
 		getBlock(x, y).img = stoneImg;
 	}*/
 	setBlock(x, y, newBlock(x, y, inventory[slot].type));
-	lightUpdate(y + (size * x));
+	lightWorld();
+	//lightUpdate(y + (size * x));
 	//getBlock(x, y).color = blocks[inventory[slot].type].rgb;
 	/*
 	if (inventory[slot].type == "dirt") {
@@ -380,13 +431,15 @@ function drawTile(tile) {
 		if (tile.y*zoom-scrollY+cvHeight/2 > -size && tile.y*zoom-scrollY+cvHeight/2 < cvHeight) {
 			//lightUpdate(tile.x * size + tile.y);
 			if (tile.img == null || textures != true) {
-				if (tile.type == 1) {
+				ctx.fillStyle = colorToString(colorMultiply(tile.color, Math.min(tile.light/10, 1)));
+				ctx.fillRect(tile.x*zoom-scrollX+cvWidth/2, tile.y*zoom-scrollY+cvHeight/2, zoom+1, zoom+1);
+				/*if (tile.type == 1) {
 					ctx.fillStyle = colorToString(colorMultiply(tile.color, Math.min(tile.light, 1)));
 					ctx.fillRect(tile.x*zoom-scrollX+cvWidth/2, tile.y*zoom-scrollY+cvHeight/2, zoom+1, zoom+1);
 				} else {
 					ctx.fillStyle = colorToString(tile.color);
 					ctx.fillRect(tile.x*zoom-scrollX+cvWidth/2, tile.y*zoom-scrollY+cvHeight/2, zoom+1, zoom+1);
-				}
+				}*/
 			} else {
 				ctx.drawImage(tile.img, tile.x*zoom-scrollX+cvWidth/2, tile.y*zoom-scrollY+cvHeight/2, zoom+1, zoom+1);
 			}
@@ -538,7 +591,7 @@ function getBlock(x, y) {
 		var block = tiles[y + (size * x)];
 		return block;
 	} else {
-		return {"x":x, "y":y, "type":1, "color":"white", "light":1};
+		return newBlock(x, y, "air");
 	}
 }
 
@@ -547,6 +600,13 @@ function setBlock(x, y, block) {
 		//log(JSON.stringify(block));
 		tiles[y + (size * x)] = block;
 	//}
+}
+
+function setBlockField(x, y, field, value) {
+	if (x > -1 && x < size && y > -1 && y < size) {
+		//log(JSON.stringify(block));
+		tiles[y + (size * x)][field] = value;
+	}
 }
 
 function playerBlocks() {
