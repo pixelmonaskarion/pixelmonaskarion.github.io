@@ -389,15 +389,64 @@ function lightWorld() {
 	}
 }
 
+function lightPart(sx, sy, ex, ey) {
+	var lightMap = new Array((ex-sx)*(ey-sy));
+	for (var x = sx; x < ex; x++) {
+		for (var y = sy; y < ey; y++) {
+			if (getTopBlock(x).y > y) {
+				setBlockField(x, y, "light", 10);
+			}
+			lightMap[y + (size * x)] = (blocks[getBlock(x, y).name].light != 0 || getTopBlock(x).y > y);
+		}
+	}
+	stop = false;
+	while (stop == false) {
+		stop = true;
+		//console.log(lightMap);
+		var newLightMap = new Array((ex-sx)*(ey-sy));
+		for (var x = sx; x < ex; x++) {
+			for (var y = sy; y < ey; y++) {
+				if (lightMap[y + (size * x)] == undefined) {
+					lightMap[y + (size * x)] = false;
+				}
+				if (lightMap[y + (size * x)] == true) {
+					//console.log("x: " + x + " y: " + y);
+					stop = false;
+					if (getBlock(x+1, y).light < getBlock(x, y).light) {
+						setBlockField(x+1, y, "light", getBlock(x, y).light-1);
+						//console.log("s: " + getBlock(x, y).light + " p: " + getBlock(x-1, y).light);
+						newLightMap[y + (size * (x+1))] = (getBlock(x+1, y).light > 0);
+					}
+					if (getBlock(x-1, y).light < getBlock(x, y).light) {
+						setBlockField(x-1, y, "light", getBlock(x, y).light-1);
+						//console.log("s: " + getBlock(x, y).light + " p: " + getBlock(x-1, y).light);
+						newLightMap[y + (size * (x-1))] = (getBlock(x-1, y).light > 0);
+					}
+					if (getBlock(x, y+1).light < getBlock(x, y).light) {
+						setBlockField(x, y+1, "light", getBlock(x, y).light-1);
+						newLightMap[y+1 + (size * x)] = (getBlock(x, y+1).light > 0);
+					}
+					if (getBlock(x, y-1).light < getBlock(x, y).light) {
+						setBlockField(x, y-1, "light", getBlock(x, y).light-1);
+						newLightMap[y-1 + (size * x)] = (getBlock(x, y-1).light > 0);
+					}
+				}
+			}
+		}
+		//console.log(newLightMap);
+		lightMap = newLightMap;
+	}
+}
+
 function placeBlock(x, y) {
 	var before = Object.assign({}, getBlock(x, y));
+	if (before.name == inventory[slot].type) return;
 	/*if (inventory[slot].type == "stone") {
 		getBlock(x, y).type = 0	;
 		getBlock(x, y).color = {"r":100, "g":100, "b":100};
 		getBlock(x, y).img = stoneImg;
 	}*/
 	setBlock(x, y, newBlock(x, y, inventory[slot].type));
-	lightWorld();
 	//lightUpdate(y + (size * x));
 	//getBlock(x, y).color = blocks[inventory[slot].type].rgb;
 	/*
@@ -418,6 +467,8 @@ function placeBlock(x, y) {
 	}*/
 	if (playerTouchingBlocks()) {
 		setBlock(x, y, before);
+	} else {
+		lightPart(x-10, x+10, y-10, y+10);
 	}
 }
 
