@@ -1,0 +1,16 @@
+{
+  "files": {
+    "main.css": "/chairproject/static/css/main.1dd915e2.css",
+    "main.js": "/chairproject/static/js/main.d98b73fa.js",
+    "static/js/787.1df2c206.chunk.js": "/chairproject/static/js/787.1df2c206.chunk.js",
+    "static/media/tragic_death.jpg": "/chairproject/static/media/tragic_death.efeb09d4e8cef18ea1b1.jpg",
+    "index.html": "/chairproject/index.html",
+    "main.1dd915e2.css.map": "/chairproject/static/css/main.1dd915e2.css.map",
+    "main.d98b73fa.js.map": "/chairproject/static/js/main.d98b73fa.js.map",
+    "787.1df2c206.chunk.js.map": "/chairproject/static/js/787.1df2c206.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.1dd915e2.css",
+    "static/js/main.d98b73fa.js"
+  ]
+}
