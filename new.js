@@ -341,101 +341,44 @@ function animate() {
 }
 
 function lightWorld() {
-	var lightMap = new Array(size*size);
+	var lightBlocks = [];
+	var timer = Date.now();
 	for (var x = 0; x < size; x++) {
 		for (var y = 0; y < size; y++) {
-			if (getTopBlock(x).y > y) {
-				setBlockField(x, y, "light", 10);
-			}
-			lightMap[y + (size * x)] = (blocks[getBlock(x, y).name].light != 0 || getTopBlock(x).y > y);
-		}
-	}
-	stop = false;
-	while (stop == false) {
-		stop = true;
-		//console.log(lightMap);
-		var newLightMap = new Array(size*size);
-		for (var x = 0; x < size; x++) {
-			for (var y = 0; y < size; y++) {
-				if (lightMap[y + (size * x)] == undefined) {
-					lightMap[y + (size * x)] = false;
-				}
-				if (lightMap[y + (size * x)] == true) {
-					//console.log("x: " + x + " y: " + y);
-					stop = false;
-					if (getBlock(x+1, y).light < getBlock(x, y).light) {
-						setBlockField(x+1, y, "light", getBlock(x, y).light-1);
-						//console.log("s: " + getBlock(x, y).light + " p: " + getBlock(x-1, y).light);
-						newLightMap[y + (size * (x+1))] = (getBlock(x+1, y).light > 0);
-					}
-					if (getBlock(x-1, y).light < getBlock(x, y).light) {
-						setBlockField(x-1, y, "light", getBlock(x, y).light-1);
-						//console.log("s: " + getBlock(x, y).light + " p: " + getBlock(x-1, y).light);
-						newLightMap[y + (size * (x-1))] = (getBlock(x-1, y).light > 0);
-					}
-					if (getBlock(x, y+1).light < getBlock(x, y).light) {
-						setBlockField(x, y+1, "light", getBlock(x, y).light-1);
-						newLightMap[y+1 + (size * x)] = (getBlock(x, y+1).light > 0);
-					}
-					if (getBlock(x, y-1).light < getBlock(x, y).light) {
-						setBlockField(x, y-1, "light", getBlock(x, y).light-1);
-						newLightMap[y-1 + (size * x)] = (getBlock(x, y-1).light > 0);
-					}
-				}
+			let type = getBlock(x, y).name;
+			if (blocks[type].light != 0) {
+				lightBlocks.push([x, y]);
 			}
 		}
-		//console.log(newLightMap);
-		lightMap = newLightMap;
 	}
+	console.log("took", Date.now()-timer);
+	timer = Date.now();
+	while (lightBlocks.length > 0) {
+		let lightNode = lightBlocks.pop();
+		let x = lightNode[0];
+		let y = lightNode[1];
+		if (getBlock(x+1, y).light < getBlock(x, y).light) {
+			setBlockField(x+1, y, "light", getBlock(x, y).light-1);
+			lightBlocks.push([x+1, y]);
+		}
+		if (getBlock(x-1, y).light < getBlock(x, y).light) {
+			setBlockField(x-1, y, "light", getBlock(x, y).light-1);
+			lightBlocks.push([x-1, y]);
+		}
+		if (getBlock(x, y+1).light < getBlock(x, y).light) {
+			setBlockField(x, y+1, "light", getBlock(x, y).light-1);
+			lightBlocks.push([x, y+1]);
+		}
+		if (getBlock(x, y-1).light < getBlock(x, y).light) {
+			setBlockField(x, y-1, "light", getBlock(x, y).light-1);
+			lightBlocks.push([x, y-1]);
+		}
+	}
+	console.log("took", Date.now()-timer);
 }
 
 function lightPart(sx, sy, ex, ey) {
-	var lightMap = new Array((ex-sx)*(ey-sy));
-	for (var x = sx; x < ex; x++) {
-		for (var y = sy; y < ey; y++) {
-			if (getTopBlock(x).y > y) {
-				setBlockField(x, y, "light", 10);
-			}
-			lightMap[y + (size * x)] = (blocks[getBlock(x, y).name].light != 0 || getTopBlock(x).y > y);
-		}
-	}
-	stop = false;
-	while (stop == false) {
-		stop = true;
-		//console.log(lightMap);
-		var newLightMap = new Array((ex-sx)*(ey-sy));
-		for (var x = sx; x < ex; x++) {
-			for (var y = sy; y < ey; y++) {
-				if (lightMap[y + (size * x)] == undefined) {
-					lightMap[y + (size * x)] = false;
-				}
-				if (lightMap[y + (size * x)] == true) {
-					//console.log("x: " + x + " y: " + y);
-					stop = false;
-					if (getBlock(x+1, y).light < getBlock(x, y).light) {
-						setBlockField(x+1, y, "light", getBlock(x, y).light-1);
-						//console.log("s: " + getBlock(x, y).light + " p: " + getBlock(x-1, y).light);
-						newLightMap[y + (size * (x+1))] = (getBlock(x+1, y).light > 0);
-					}
-					if (getBlock(x-1, y).light < getBlock(x, y).light) {
-						setBlockField(x-1, y, "light", getBlock(x, y).light-1);
-						//console.log("s: " + getBlock(x, y).light + " p: " + getBlock(x-1, y).light);
-						newLightMap[y + (size * (x-1))] = (getBlock(x-1, y).light > 0);
-					}
-					if (getBlock(x, y+1).light < getBlock(x, y).light) {
-						setBlockField(x, y+1, "light", getBlock(x, y).light-1);
-						newLightMap[y+1 + (size * x)] = (getBlock(x, y+1).light > 0);
-					}
-					if (getBlock(x, y-1).light < getBlock(x, y).light) {
-						setBlockField(x, y-1, "light", getBlock(x, y).light-1);
-						newLightMap[y-1 + (size * x)] = (getBlock(x, y-1).light > 0);
-					}
-				}
-			}
-		}
-		//console.log(newLightMap);
-		lightMap = newLightMap;
-	}
+	lightWorld();
 }
 
 function placeBlock(x, y) {
@@ -468,7 +411,7 @@ function placeBlock(x, y) {
 	if (playerTouchingBlocks()) {
 		setBlock(x, y, before);
 	} else {
-		lightPart(x-10, x+10, y-10, y+10);
+		lightWorld()
 	}
 }
 
@@ -482,7 +425,8 @@ function drawTile(tile) {
 		if (tile.y*zoom-scrollY+cvHeight/2 > -size && tile.y*zoom-scrollY+cvHeight/2 < cvHeight) {
 			//lightUpdate(tile.x * size + tile.y);
 			if (tile.img == null || textures != true) {
-				ctx.fillStyle = colorToString(colorMultiply(tile.color, Math.min(tile.light/10, 1)));
+				let skylight = Math.max(getTopBlock(tile.x).y-tile.y+10, 0)
+				ctx.fillStyle = colorToString(colorMultiply(tile.color, Math.min(Math.max(tile.light, skylight)/10, 1)));
 				ctx.fillRect(tile.x*zoom-scrollX+cvWidth/2, tile.y*zoom-scrollY+cvHeight/2, zoom+1, zoom+1);
 				/*if (tile.type == 1) {
 					ctx.fillStyle = colorToString(colorMultiply(tile.color, Math.min(tile.light, 1)));
