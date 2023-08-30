@@ -7,6 +7,7 @@ var x = 0;
 var keysDown = [];
 var codesDown = [];
 var tiles = [];
+var lightMap = [];
 var liquids = [];
 var particles = [];
 var size = 1000;
@@ -63,7 +64,8 @@ for (var x = 0; x < size; x++) {
 		//tiles[x * size + y] = {"x":x, "y":y, "color":"rgb(" + 200+random(0,55) + ", " + random(0,10) + ", " + 0 + ")"};
 		//tiles[x * size + y] = {"x":x, "y":y, "color":"rgb(" + range(0,20) + ", " + (200+range(0, 55)) + "," + range(0,5) + ")"};
 		//tiles[x * size + y] = {"x":x, "y":y, "color":color, "type":value/255, "light":0, "img":img};
-		tiles[x * size + y] = block;
+		// tiles[x * size + y] = block;
+		setBlock(x, y, block);
 	}
 	var by = getTopBlock(x).y;
 	//log(by);
@@ -109,6 +111,17 @@ for (var x = 0; x < size; x++) {
 //for (var b = 0; b < tiles.length; b++) {
 	//lightUpdate(b);
 //}
+
+var lightBlocks = new Map();
+for (var x = 0; x < size; x++) {
+	for (var y = 0; y < size; y++) {
+		let type = getBlock(x, y).name;
+		if (blocks[type].light != 0) {
+			lightBlocks.set(x+","+y, blocks[type].light);
+		}
+	}
+}
+
 lightWorld();
 log("top block is: " + (getTopBlock(0).y-1));
 var player = {"x": 0, "y": (getTopBlock(0).y-1)*zoom, "sy":0, inAir:10, "hook":null, jumped:false};
@@ -233,7 +246,9 @@ function animate() {
   //getBlock(Math.floor(player.x/zoom), Math.floor(player.y/zoom)).color = "rgb(255,0,0)";
   ctx.fillStyle = "red";
   ctx.fillRect(player.x-scrollX+cvWidth/2, player.y-scrollY+cvHeight/2, zoom, zoom);
-  
+  if (particles.length > 0) {
+	lightWorld();
+  }
   for (var i = 0; i < particles.length; i++) {
     ctx.globalAlpha = particles[i].time/particles[i].maxTime;
 	ctx.fillStyle = "hsl("+(particles[i].maxTime-particles[i].time)*5+", 100%, 50%)";
@@ -339,39 +354,40 @@ function animate() {
   //ctx.fillRect(0,0,100,100);
   drawOutline();
 }
-
 function lightWorld() {
-	var lightBlocks = [];
+	lightMap = new Array(size*size).fill(0);
+	let localLightBlocks = new Map(lightBlocks);
+	particles.forEach((particle) => {
+		localLightBlocks.set(Math.round(particle.x/zoom) + ","+Math.round(particle.y/zoom), 3);
+	});
+	localLightBlocks.forEach((light, block) => {
+		let x = Number(block.split(",")[0]);
+		let y = Number(block.split(",")[1]);
+		setBlockField(x, y, "light", light)
+	});
 	var timer = Date.now();
-	for (var x = 0; x < size; x++) {
-		for (var y = 0; y < size; y++) {
-			let type = getBlock(x, y).name;
-			if (blocks[type].light != 0) {
-				lightBlocks.push([x, y]);
-			}
-		}
-	}
 	console.log("took", Date.now()-timer);
 	timer = Date.now();
-	while (lightBlocks.length > 0) {
-		let lightNode = lightBlocks.pop();
-		let x = lightNode[0];
-		let y = lightNode[1];
-		if (getBlock(x+1, y).light < getBlock(x, y).light) {
-			setBlockField(x+1, y, "light", getBlock(x, y).light-1);
-			lightBlocks.push([x+1, y]);
+	while (localLightBlocks.size > 0) {
+		let lightPos = localLightBlocks.keys().next().value;
+		localLightBlocks.delete(lightPos);
+		let x = Number(lightPos.split(",")[0]);
+		let y = Number(lightPos.split(",")[1]);
+		if (getLight(x+1, y) < getLight(x, y)) {
+			setBlockField(x+1, y, "light", getLight(x, y)-1);
+			localLightBlocks.set((x+1)+","+y, getLight(x, y)-1);
 		}
-		if (getBlock(x-1, y).light < getBlock(x, y).light) {
-			setBlockField(x-1, y, "light", getBlock(x, y).light-1);
-			lightBlocks.push([x-1, y]);
+		if (getLight(x-1, y) < getLight(x, y)) {
+			setBlockField(x-1, y, "light", getLight(x, y)-1);
+			localLightBlocks.set((x-1)+","+y, getLight(x, y)-1);
 		}
-		if (getBlock(x, y+1).light < getBlock(x, y).light) {
-			setBlockField(x, y+1, "light", getBlock(x, y).light-1);
-			lightBlocks.push([x, y+1]);
+		if (getLight(x, y+1) < getLight(x, y)) {
+			setBlockField(x, y+1, "light", getLight(x, y)-1);
+			localLightBlocks.set(x+","+(y+1), getLight(x, y)-1);
 		}
-		if (getBlock(x, y-1).light < getBlock(x, y).light) {
-			setBlockField(x, y-1, "light", getBlock(x, y).light-1);
-			lightBlocks.push([x, y-1]);
+		if (getLight(x, y-1) < getLight(x, y)) {
+			setBlockField(x, y-1, "light", getLight(x, y)-1);
+			localLightBlocks.set(x+","+(y-1), getLight(x, y)-1);
 		}
 	}
 	console.log("took", Date.now()-timer);
@@ -389,6 +405,14 @@ function placeBlock(x, y) {
 		getBlock(x, y).color = {"r":100, "g":100, "b":100};
 		getBlock(x, y).img = stoneImg;
 	}*/
+	let finished = false;
+	lightBlocks.forEach((_, block) => {
+		if (block == x+","+y && !finished) {
+			lightBlocks.delete(block);
+			finished = true;
+		}
+	});
+	
 	setBlock(x, y, newBlock(x, y, inventory[slot].type));
 	//lightUpdate(y + (size * x));
 	//getBlock(x, y).color = blocks[inventory[slot].type].rgb;
@@ -411,6 +435,9 @@ function placeBlock(x, y) {
 	if (playerTouchingBlocks()) {
 		setBlock(x, y, before);
 	} else {
+		if (blocks[getBlock(x, y).name].light != 0) {
+			lightBlocks.set(x+","+y, blocks[getBlock(x, y).name].light);
+		}
 		lightWorld()
 	}
 }
@@ -426,7 +453,7 @@ function drawTile(tile) {
 			//lightUpdate(tile.x * size + tile.y);
 			if (tile.img == null || textures != true) {
 				let skylight = Math.max(getTopBlock(tile.x).y-tile.y+10, 0)
-				ctx.fillStyle = colorToString(colorMultiply(tile.color, Math.min(Math.max(tile.light, skylight)/10, 1)));
+				ctx.fillStyle = colorToString(colorMultiply(tile.color, Math.min(Math.max(getLight(tile.x, tile.y), skylight)/10, 1)));
 				ctx.fillRect(tile.x*zoom-scrollX+cvWidth/2, tile.y*zoom-scrollY+cvHeight/2, zoom+1, zoom+1);
 				/*if (tile.type == 1) {
 					ctx.fillStyle = colorToString(colorMultiply(tile.color, Math.min(tile.light, 1)));
@@ -452,7 +479,7 @@ function drawTile(tile) {
 function drawLiquid(liquid) {
 	if (liquid.x*zoom-scrollX+cvWidth/2 > -size && liquid.x*zoom-scrollX+cvWidth/2 < cvWidth) {
 		if (liquid.y*zoom-scrollY+cvHeight/2 > -size && liquid.y*zoom-scrollY+cvHeight/2 < cvHeight) {
-			ctx.fillStyle = colorToString(colorMultiply({"r":0, "g":0, "b":255}, Math.min(getBlock(liquid.x, liquid.y).light, 1)));
+			ctx.fillStyle = colorToString(colorMultiply({"r":0, "g":0, "b":255}, Math.min(getLight(liquid.x, liquid.y), 1)));
 			ctx.fillRect(liquid.x*zoom-scrollX+cvWidth/2, liquid.y*zoom-scrollY+cvHeight/2+zoom-((zoom+1)*liquid.amount), zoom+1, (zoom+1)*liquid.amount);
 		}
 	}
@@ -590,17 +617,31 @@ function getBlock(x, y) {
 	}
 }
 
+function getLight(x, y) {
+	if (x > -1 && x < size && y > -1 && y < size) {
+		var block = lightMap[y + (size * x)];
+		return block;
+	} else {
+		return 0;
+	}
+}
+
 function setBlock(x, y, block) {
 	//if (x > -1 && x < size && y > -1 && y < size) {
 		//log(JSON.stringify(block));
 		tiles[y + (size * x)] = block;
+		lightMap[y + (size * x)] = block.light;
 	//}
 }
 
 function setBlockField(x, y, field, value) {
 	if (x > -1 && x < size && y > -1 && y < size) {
 		//log(JSON.stringify(block));
-		tiles[y + (size * x)][field] = value;
+		if (field == "light") {
+			lightMap[y + (size * x)] = value;
+		} else {
+			tiles[y + (size * x)][field] = value;
+		}
 	}
 }
 
